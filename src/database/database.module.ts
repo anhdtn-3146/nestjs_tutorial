@@ -13,6 +13,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
+        entities: [__dirname + '/entities/*.entity.{ts,js}'],
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: false, // Use `false` in production and use migrations instead
         autoLoadEntities: true,
       }),
