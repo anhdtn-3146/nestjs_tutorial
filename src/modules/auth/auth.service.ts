@@ -4,19 +4,21 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private readonly i18n: I18nService,
   ) {}
 
   async login(payload: LoginDto) {
     const user = await this.usersService.findByEmail(payload.email);
 
     if (!user || !(await bcrypt.compare(payload.password, user.password))) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      throw new UnauthorizedException(this.i18n.t('auth.invalidCredentials'));
     }
 
     const jwtPayload = { email: user.email, sub: user.id };
@@ -30,9 +32,7 @@ export class AuthService {
     const existingUser = await this.usersService.findByEmail(payload.email);
 
     if (existingUser) {
-      throw new UnauthorizedException(
-        'Email đã tồn tại, vui lòng sử dụng email khác',
-      );
+      throw new UnauthorizedException(this.i18n.t('auth.existEmail'));
     }
 
     const hashPassword = await bcrypt.hash(payload.password, 10);
