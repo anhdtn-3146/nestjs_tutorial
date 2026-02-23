@@ -37,11 +37,13 @@ export class AuthService {
 
     const hashPassword = await bcrypt.hash(payload.password, 10);
 
-    await this.usersService.create({
-      ...payload,
-      password: hashPassword,
-    });
-
-    return { success: true };
+    try {
+      await this.usersService.create({
+        ...payload,
+        password: hashPassword,
+      });
+    } catch {
+      throw new UnauthorizedException(this.i18n.t('auth.registrationFailed'));
+    }
   }
 }

@@ -4,6 +4,7 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "assets": ["i18n/**/*"],
-    "watchAssets": true
+    "watchAssets": true,
+    "deleteOutDir": true
   }
 }
