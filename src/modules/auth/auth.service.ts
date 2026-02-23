@@ -32,7 +32,7 @@ export class AuthService {
     const existingUser = await this.usersService.findByEmail(payload.email);
 
     if (existingUser) {
-      throw new UnauthorizedException(this.i18n.t('auth.existEmail'));
+      throw new UnauthorizedException(this.i18n.t('common.auth.existEmail'));
     }
 
     const hashPassword = await bcrypt.hash(payload.password, 10);
@@ -42,8 +42,12 @@ export class AuthService {
         ...payload,
         password: hashPassword,
       });
+
+      return { success: true };
     } catch {
-      throw new UnauthorizedException(this.i18n.t('auth.registrationFailed'));
+      throw new UnauthorizedException(
+        this.i18n.t('common.auth.registrationFailed'),
+      );
     }
   }
 }
