@@ -1,0 +1,7 @@
+{
+  "auth": {
+    "invalidCredentials": "Invalid email or password",
+    "existEmail": "Email already exists, please choose another one",
+    "registrationFailed": "User registration failed"
+  }
+}

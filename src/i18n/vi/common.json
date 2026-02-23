@@ -1,0 +1,7 @@
+{
+  "auth": {
+    "invalidCredentials": "Email hoặc mật khẩu không đúng",
+    "existEmail": "Email đã tồn tại, vui lòng chọn email khác",
+    "registrationFailed": "Đăng ký người dùng thất bại"
+  }
+}
