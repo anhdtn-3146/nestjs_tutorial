@@ -10,6 +10,10 @@ export class UsersService {
     private readonly userRepository: Repository<UserEntity>,
   ) {}
 
+  findById(id: number) {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
   findByEmail(email: string) {
     return this.userRepository.findOne({ where: { email } });
   }

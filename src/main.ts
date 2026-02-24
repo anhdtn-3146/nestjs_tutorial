@@ -1,6 +1,6 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { HttpStatus } from '@nestjs/common';
+import { ClassSerializerInterceptor, HttpStatus } from '@nestjs/common';
 import {
   I18nValidationError,
   I18nValidationExceptionFilter,
@@ -20,6 +20,9 @@ async function bootstrap() {
       stopAtFirstError: true,
     }),
   );
+
+  // Enable global class-transformer decorators (Exclude, Expose, Transform)
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   app.useGlobalFilters(
     new I18nValidationExceptionFilter({
