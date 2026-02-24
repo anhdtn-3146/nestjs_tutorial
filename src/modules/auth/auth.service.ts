@@ -18,7 +18,9 @@ export class AuthService {
     const user = await this.usersService.findByEmail(payload.email);
 
     if (!user || !(await bcrypt.compare(payload.password, user.password))) {
-      throw new UnauthorizedException(this.i18n.t('auth.invalidCredentials'));
+      throw new UnauthorizedException(
+        this.i18n.t('common.auth.invalidCredentials'),
+      );
     }
 
     const jwtPayload = { email: user.email, sub: user.id };

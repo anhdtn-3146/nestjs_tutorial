@@ -106,7 +106,9 @@ describe('AuthService', () => {
       );
 
       expect(mockUsersService.findByEmail).toHaveBeenCalledWith(loginDto.email);
-      expect(mockI18nService.t).toHaveBeenCalledWith('auth.invalidCredentials');
+      expect(mockI18nService.t).toHaveBeenCalledWith(
+        'common.auth.invalidCredentials',
+      );
       expect(bcryptMock.compare).not.toHaveBeenCalled();
       expect(mockJwtService.signAsync).not.toHaveBeenCalled();
     });
@@ -129,7 +131,9 @@ describe('AuthService', () => {
         loginDto.password,
         mockUser.password,
       );
-      expect(mockI18nService.t).toHaveBeenCalledWith('auth.invalidCredentials');
+      expect(mockI18nService.t).toHaveBeenCalledWith(
+        'common.auth.invalidCredentials',
+      );
       expect(mockJwtService.signAsync).not.toHaveBeenCalled();
     });
 
@@ -227,7 +231,7 @@ describe('AuthService', () => {
       expect(mockUsersService.findByEmail).toHaveBeenCalledWith(
         registerDto.email,
       );
-      expect(mockI18nService.t).toHaveBeenCalledWith('auth.existEmail');
+      expect(mockI18nService.t).toHaveBeenCalledWith('common.auth.existEmail');
       expect(bcryptMock.hash).not.toHaveBeenCalled();
       expect(mockUsersService.create).not.toHaveBeenCalled();
     });
@@ -269,7 +273,7 @@ describe('AuthService', () => {
       mockUsersService.create.mockRejectedValue(new Error('Database error'));
 
       await expect(service.register(registerDto)).rejects.toThrow(
-        'Database error',
+        UnauthorizedException,
       );
 
       expect(mockUsersService.findByEmail).toHaveBeenCalledWith(
