@@ -1,5 +1,6 @@
-import { Controller, Get, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { UserSerializer } from './serializers/user.serializer';
 
 @Controller('user')
 export class UsersController {
@@ -9,8 +10,6 @@ export class UsersController {
   async getCurrentUser(@Req() req) {
     const user = await this.usersService.findById(req.user.sub);
 
-    if (!user) throw new UnauthorizedException();
-
-    return user;
+    return new UserSerializer(user, { type: 'BASIC_INFO' }).serialize();
   }
 }
