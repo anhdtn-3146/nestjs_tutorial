@@ -1,11 +1,16 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
+import { Controller, Get, Req, UnauthorizedException } from '@nestjs/common';
+import { UsersService } from './users.service';
 
 @Controller('user')
 export class UsersController {
+  constructor(private usersService: UsersService) {}
+
   @Get()
-  @UseGuards(AuthGuard)
   async getCurrentUser(@Req() req) {
-    return req.user;
+    const user = await this.usersService.findById(req.user.sub);
+
+    if (!user) throw new UnauthorizedException();
+
+    return user;
   }
 }

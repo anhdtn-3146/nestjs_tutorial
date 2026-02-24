@@ -1,29 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
-import { AuthGuard } from '../auth/auth.guard';
-import { JwtService } from '@nestjs/jwt';
 
 describe('UsersController', () => {
   let controller: UsersController;
-  let mockUsersService: Partial<UsersService>;
+  let mockUsersService: any;
 
   beforeEach(async () => {
-    mockUsersService = {};
+    mockUsersService = {
+      findById: jest.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
       providers: [
         {
           provide: UsersService,
           useValue: mockUsersService,
-        },
-        {
-          provide: AuthGuard,
-          useValue: { canActivate: jest.fn().mockReturnValue(true) },
-        },
-        {
-          provide: JwtService,
-          useValue: {},
         },
       ],
     }).compile();
@@ -46,9 +38,20 @@ describe('UsersController', () => {
         email: 'test@example.com',
         username: 'testuser',
       };
-      const mockReq = { user: mockUser };
+      const mockReq = { user: { sub: mockUser.id } };
+      mockUsersService.findById.mockResolvedValue(mockUser);
       const result = await controller.getCurrentUser(mockReq);
+      expect(mockUsersService.findById).toHaveBeenCalledWith(mockUser.id);
       expect(result).toEqual(mockUser);
+    });
+
+    it('should throw UnauthorizedException if user not found', async () => {
+      const mockReq = { user: { sub: 999 } };
+      mockUsersService.findById.mockResolvedValue(undefined);
+      await expect(controller.getCurrentUser(mockReq)).rejects.toThrow(
+        'Unauthorized',
+      );
+      expect(mockUsersService.findById).toHaveBeenCalledWith(999);
     });
   });
 });
