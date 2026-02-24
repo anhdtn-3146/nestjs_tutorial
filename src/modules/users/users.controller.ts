@@ -1,13 +1,23 @@
-import { Controller, Get, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UserSerializer } from './serializers/user.serializer';
+import { UpdateUserDto } from './dto/update-user.dto';
 
-@Controller('user')
+@Controller()
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
-  @Get()
+  @Get('user')
   async getCurrentUser(@Req() req) {
     return await this.usersService.findById(req.user.sub);
+  }
+
+  @Put('user')
+  async updateUser(@Body() updateUserDto: UpdateUserDto, @Req() req) {
+    return this.usersService.update(req.user.sub, updateUserDto);
+  }
+
+  @Get('profiles/:id')
+  async getUserProfile(@Param('id') id: string) {
+    return await this.usersService.findById(Number(id), 'PROFILE');
   }
 }
