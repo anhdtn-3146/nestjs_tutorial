@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { UserEntity } from 'src/database/entities/user.entity';
 import { Repository } from 'typeorm';
+import { UserSerializer } from './serializers/user.serializer';
 
 @Injectable()
 export class UsersService {
@@ -12,7 +13,7 @@ export class UsersService {
     private readonly i18n: I18nService,
   ) {}
 
-  async findById(id: number) {
+  async findById(id: number, type?: UserSerializerType) {
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
@@ -21,7 +22,7 @@ export class UsersService {
       );
     }
 
-    return user;
+    return new UserSerializer(user, { type: 'BASIC_INFO' }).serialize();
   }
 
   findByEmail(email: string) {

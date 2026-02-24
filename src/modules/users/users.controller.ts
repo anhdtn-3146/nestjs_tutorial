@@ -8,8 +8,6 @@ export class UsersController {
 
   @Get()
   async getCurrentUser(@Req() req) {
-    const user = await this.usersService.findById(req.user.sub);
-
-    return new UserSerializer(user, { type: 'BASIC_INFO' }).serialize();
+    return await this.usersService.findById(req.user.sub);
   }
 }
