@@ -5,5 +5,5 @@
     "registrationFailed": "User registration failed"
   },
   "notFound": "{field} not found",
-  "invalid": "Some thing went wrong, please try again later"
+  "invalid": "Something went wrong, please try again later"
 }

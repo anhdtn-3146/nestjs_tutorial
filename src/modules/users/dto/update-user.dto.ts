@@ -44,6 +44,11 @@ export class UpdateUserDto {
   bio?: string;
 
   @IsOptional()
-  @IsUrl()
+  @IsUrl(
+    {},
+    {
+      message: i18nValidationMessage('validation.urlInvalid'),
+    },
+  )
   image?: string;
 }

@@ -3,7 +3,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
@@ -43,7 +42,7 @@ export class UsersService {
   }
 
   async update(id: number, data: Partial<UserEntity>) {
-    const existUser = await this.findById(id);
+    const existUser = await this.userRepository.findOne({ where: { id } });
 
     if (!existUser) {
       throw new NotFoundException(

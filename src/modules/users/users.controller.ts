@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Put,
+  Req,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -17,7 +25,7 @@ export class UsersController {
   }
 
   @Get('profiles/:id')
-  async getUserProfile(@Param('id') id: string) {
-    return await this.usersService.findById(Number(id), 'PROFILE');
+  async getUserProfile(@Param('id', ParseIntPipe) id: number) {
+    return await this.usersService.findById(id, 'PROFILE');
   }
 }
