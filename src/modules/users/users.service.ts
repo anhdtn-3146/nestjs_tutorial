@@ -21,7 +21,7 @@ export class UsersService {
     private readonly i18n: I18nService,
   ) {}
 
-  async findById(id: number, type?: UserSerializerType) {
+  private async findUserByIdOrThrow(id: number) {
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
@@ -30,7 +30,13 @@ export class UsersService {
       );
     }
 
-    return new UserSerializer(user, { type: type || 'BASIC_INFO' }).serialize();
+    return user;
+  }
+
+  async findById(id: number, type: UserSerializerType = 'BASIC_INFO') {
+    const user = await this.findUserByIdOrThrow(id);
+
+    return new UserSerializer(user, { type }).serialize();
   }
 
   findByEmail(email: string) {
@@ -41,20 +47,18 @@ export class UsersService {
     return this.userRepository.save(data);
   }
 
-  async update(id: number, data: Partial<UserEntity>) {
-    const existUser = await this.userRepository.findOne({ where: { id } });
-
-    if (!existUser) {
-      throw new NotFoundException(
-        this.i18n.t('notFound', { args: { field: 'User' } }),
-      );
+  private async checkEmailExist(email: string) {
+    const emailExist = await this.findByEmail(email);
+    if (emailExist) {
+      throw new ConflictException(this.i18n.t('common.auth.existEmail'));
     }
+  }
+
+  async update(id: number, data: Partial<UserEntity>) {
+    const existUser = await this.findUserByIdOrThrow(id);
 
     if (data.email && data.email !== existUser.email) {
-      const emailExist = await this.findByEmail(data.email);
-      if (emailExist) {
-        throw new ConflictException(this.i18n.t('common.auth.existEmail'));
-      }
+      await this.checkEmailExist(data.email);
     }
 
     try {
