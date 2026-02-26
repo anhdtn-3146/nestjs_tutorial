@@ -21,12 +21,12 @@ export class UsersService {
     private readonly i18n: I18nService,
   ) {}
 
-  private async findUserByIdOrThrow(id: number) {
+  async findUserByIdOrThrow(id: number) {
     const user = await this.userRepository.findOne({ where: { id } });
 
     if (!user) {
       throw new NotFoundException(
-        this.i18n.t('notFound', { args: { field: 'User' } }),
+        this.i18n.t('common.notFound', { args: { field: 'User' } }),
       );
     }
 
