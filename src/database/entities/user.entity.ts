@@ -21,4 +21,7 @@ export class UserEntity {
 
   @Column({ nullable: true })
   image: string;
+
+  @Column({ default: false })
+  following: boolean;
 }
