@@ -121,7 +121,9 @@ export class ArticlesService {
         author,
       });
 
-      return this.articleRepo.save(article);
+      await this.articleRepo.save(article);
+
+      return { success: true };
     } catch {
       throw new BadRequestException(this.i18n.t('invalid'));
     }
