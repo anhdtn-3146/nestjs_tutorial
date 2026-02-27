@@ -2,16 +2,14 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  Req,
 } from '@nestjs/common';
 import { ListArticleDto } from './dto/list-article.dto';
 import { Repository } from 'typeorm';
 import { ArticleEntity } from 'src/database/entities/article.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DEFAULT_LIMIT, DEFAULT_OFFSET } from '../../common/constants';
+import { DEFAULT_LIMIT, DEFAULT_OFFSET } from 'src/common/constants';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { TagEntity } from 'src/database/entities/tag.entity';
-import { UserEntity } from 'src/database/entities/user.entity';
 import { I18nService } from 'nestjs-i18n';
 import slugify from 'slugify';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -124,7 +122,7 @@ export class ArticlesService {
       });
 
       return this.articleRepo.save(article);
-    } catch (error) {
+    } catch {
       throw new BadRequestException(this.i18n.t('invalid'));
     }
   }
@@ -150,7 +148,7 @@ export class ArticlesService {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch {
       throw new BadRequestException(this.i18n.t('invalid'));
     }
   }
@@ -165,7 +163,7 @@ export class ArticlesService {
       await this.articleRepo.delete({ slug });
 
       return { success: true };
-    } catch (error) {
+    } catch {
       throw new BadRequestException(this.i18n.t('invalid'));
     }
   }

@@ -65,7 +65,7 @@ export class UsersService {
       await this.userRepository.save({ ...existUser, ...data });
 
       return { success: true };
-    } catch (error) {
+    } catch {
       throw new BadRequestException(this.i18n.t('invalid'));
     }
   }

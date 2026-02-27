@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
 import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class UpdateArticleDto {

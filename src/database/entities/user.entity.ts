@@ -3,8 +3,8 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   ManyToMany,
+  OneToMany,
 } from 'typeorm';
 import { ArticleEntity } from './article.entity';
 
@@ -33,7 +33,7 @@ export class UserEntity {
   following: boolean;
 
   // Articles written
-  @ManyToOne(() => ArticleEntity, (article) => article.author)
+  @OneToMany(() => ArticleEntity, (article) => article.author)
   articles: ArticleEntity[];
 
   // Favorites article
