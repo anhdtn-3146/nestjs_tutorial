@@ -26,7 +26,7 @@ export class ArticlesService {
     private readonly i18n: I18nService,
   ) {}
 
-  findAll(queryParams: ListArticleDto) {
+  async findAll(queryParams: ListArticleDto) {
     const query = this.articleRepo
       .createQueryBuilder('article')
       .leftJoinAndSelect('article.author', 'author')
@@ -49,11 +49,21 @@ export class ArticlesService {
       });
     }
 
-    query
-      .skip(queryParams.offset || DEFAULT_OFFSET)
-      .take(queryParams.limit || DEFAULT_LIMIT);
+    const limit = queryParams.limit ?? DEFAULT_LIMIT;
+    const offset = queryParams.offset ?? DEFAULT_OFFSET;
 
-    return query.getMany();
+    query.skip(offset).take(limit);
+
+    const [articles, articlesCount] = await query.getManyAndCount();
+
+    return {
+      articles,
+      page: {
+        total: articlesCount,
+        limit,
+        offset,
+      },
+    };
   }
 
   async findBySlug(slug: string) {
@@ -93,27 +103,27 @@ export class ArticlesService {
   }
 
   async create(createArticleDto: CreateArticleDto, userId: number) {
-    try {
-      const author = await this.userService.findUserByIdOrThrow(userId);
-      const slug = await this.generateUniqueSlug(createArticleDto.title);
+    const author = await this.userService.findUserByIdOrThrow(userId);
+    const slug = await this.generateUniqueSlug(createArticleDto.title);
 
-      let tags: TagEntity[] = [];
-      if (
-        Array.isArray(createArticleDto.tagList) &&
-        createArticleDto.tagList.length > 0
-      ) {
-        tags = await this.tagRepo
-          .createQueryBuilder('tag')
-          .where('tag.name IN (:...names)', { names: createArticleDto.tagList })
-          .getMany();
+    let tags: TagEntity[] = [];
+    if (
+      Array.isArray(createArticleDto.tagList) &&
+      createArticleDto.tagList.length > 0
+    ) {
+      tags = await this.tagRepo
+        .createQueryBuilder('tag')
+        .where('tag.name IN (:...names)', { names: createArticleDto.tagList })
+        .getMany();
 
-        if (tags.length !== createArticleDto.tagList.length) {
-          throw new BadRequestException(
-            this.i18n.t('common.notFound', { args: { field: 'Tag' } }),
-          );
-        }
+      if (tags.length !== createArticleDto.tagList.length) {
+        throw new BadRequestException(
+          this.i18n.t('common.notFound', { args: { field: 'Tag' } }),
+        );
       }
+    }
 
+    try {
       const article = this.articleRepo.create({
         ...createArticleDto,
         slug,
@@ -129,16 +139,22 @@ export class ArticlesService {
     }
   }
 
-  async update(
-    slug: string,
-    updateArticleDto: UpdateArticleDto,
-    userId: number,
-  ) {
+  async verifyArticleOwnership(slug: string, userId: number) {
     const existArticle = await this.findBySlug(slug);
 
     if (existArticle.author.id !== userId) {
       throw new ForbiddenException();
     }
+
+    return existArticle;
+  }
+
+  async update(
+    slug: string,
+    updateArticleDto: UpdateArticleDto,
+    userId: number,
+  ) {
+    const existArticle = await this.verifyArticleOwnership(slug, userId);
 
     try {
       const newSlug = await this.generateUniqueSlug(updateArticleDto.title);
@@ -156,11 +172,8 @@ export class ArticlesService {
   }
 
   async delete(slug: string, userId: number) {
-    const existArticle = await this.findBySlug(slug);
+    await this.verifyArticleOwnership(slug, userId);
 
-    if (existArticle.author.id !== userId) {
-      throw new ForbiddenException();
-    }
     try {
       await this.articleRepo.delete({ slug });
 
