@@ -1,5 +1,12 @@
 import { Exclude } from 'class-transformer';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToMany,
+  OneToMany,
+} from 'typeorm';
+import { ArticleEntity } from './article.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -24,4 +31,12 @@ export class UserEntity {
 
   @Column({ default: false })
   following: boolean;
+
+  // Articles written
+  @OneToMany(() => ArticleEntity, (article) => article.author)
+  articles: ArticleEntity[];
+
+  // Favorites article
+  @ManyToMany(() => ArticleEntity, (article) => article.favoritedBy)
+  favorites: ArticleEntity[];
 }
