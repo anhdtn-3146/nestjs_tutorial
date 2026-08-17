@@ -12,7 +12,7 @@ const typeormConfig = new DataSource({
   database: process.env.DB_NAME,
   entities: ['src/database/entities/*.entity.{ts,js}'],
   migrations: ['src/database/migrations/*.{ts,js}'],
-  synchronize: process.env.NODE_ENV !== 'production',
+  synchronize: false,
 });
 
 export default typeormConfig;

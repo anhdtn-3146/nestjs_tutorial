@@ -1,7 +1,7 @@
 {
-  "emailRequired": "Email không được để trống",
+  "required": "{field} không được để trống",
   "emailInvalid": "Email không hợp lệ",
-  "passwordRequired": "Password không được để trống",
-  "passwordMinLength": "Password tối thiểu {min} ký tự",
+  "minLength": "{field} tối thiểu {min} ký tự",
+  "maxLength": "{field} tối đa {max} ký tự",
   "urlInvalid": "URL không hợp lệ"
 }

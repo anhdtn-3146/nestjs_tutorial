@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -6,8 +6,8 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AcceptLanguageResolver, I18nModule, QueryResolver } from 'nestjs-i18n';
-import { ArticlesModule } from './modules/articles/articles.module';
 import * as path from 'path';
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
   imports: [
@@ -26,9 +26,9 @@ import * as path from 'path';
       ],
     }),
     DatabaseModule,
+    RedisModule,
     AuthModule,
     UsersModule,
-    ArticlesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

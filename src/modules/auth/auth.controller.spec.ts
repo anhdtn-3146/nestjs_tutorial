@@ -12,6 +12,8 @@ describe('AuthController', () => {
   const mockAuthService = {
     login: jest.fn(),
     register: jest.fn(),
+    refreshToken: jest.fn(),
+    logout: jest.fn(),
   };
 
   const mockI18nService = {
@@ -83,7 +85,7 @@ describe('AuthController', () => {
       const registerDto: RegisterDto = {
         email: 'newuser@example.com',
         password: 'password123',
-        username: 'johndoe',
+        fullName: 'John Doe',
       };
       const mockResponse = { success: true };
 
@@ -99,7 +101,7 @@ describe('AuthController', () => {
       const registerDto: RegisterDto = {
         email: 'existing@example.com',
         password: 'password123',
-        username: 'existinguser',
+        fullName: 'Existing User',
       };
 
       mockI18nService.t.mockReturnValue('Email already exists');
@@ -111,6 +113,32 @@ describe('AuthController', () => {
         UnauthorizedException,
       );
       expect(mockAuthService.register).toHaveBeenCalledWith(registerDto);
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('should return a rotated token pair', async () => {
+      const dto = { refreshToken: 'old-refresh-token' };
+      const response = {
+        access_token: 'new-access-token',
+        refresh_token: 'new-refresh-token',
+      };
+      mockAuthService.refreshToken.mockResolvedValue(response);
+
+      await expect(controller.refreshToken(dto)).resolves.toEqual(response);
+      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe('logout', () => {
+    it('should logout the current session', async () => {
+      const request = { user: { sub: 1, sid: 2, jti: 'jti' } } as never;
+      mockAuthService.logout.mockResolvedValue({ success: true });
+
+      await expect(controller.logout(request)).resolves.toEqual({
+        success: true,
+      });
+      expect(mockAuthService.logout).toHaveBeenCalledWith(request.user);
     });
   });
 });

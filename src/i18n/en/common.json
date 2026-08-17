@@ -2,7 +2,8 @@
   "auth": {
     "invalidCredentials": "Invalid email or password",
     "existEmail": "Email already exists, please choose another one",
-    "registrationFailed": "User registration failed"
+    "registrationFailed": "User registration failed",
+    "invalidRefreshToken": "Invalid or expired refresh token"
   },
   "notFound": "{field} not found",
   "invalid": "Something went wrong, please try again later"

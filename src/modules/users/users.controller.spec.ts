@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
@@ -45,11 +46,14 @@ describe('UsersController', () => {
       expect(result).toEqual(mockUser);
     });
 
-    it('should throw UnauthorizedException if user not found', async () => {
+    it('should propagate NotFoundException if user is not found', async () => {
       const mockReq = { user: { sub: 999 } };
-      mockUsersService.findById.mockResolvedValue(undefined);
+      mockUsersService.findById.mockRejectedValue(
+        new NotFoundException('User not found'),
+      );
+
       await expect(controller.getCurrentUser(mockReq)).rejects.toThrow(
-        'Unauthorized',
+        NotFoundException,
       );
       expect(mockUsersService.findById).toHaveBeenCalledWith(999);
     });

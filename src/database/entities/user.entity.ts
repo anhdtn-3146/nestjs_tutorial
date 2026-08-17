@@ -3,40 +3,65 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { ArticleEntity } from './article.entity';
+import { AuthSessionEntity } from './auth-session.entity';
+
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
 
 @Entity('users')
 export class UserEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
+  @Column({ unique: true, length: 255 })
   email: string;
 
-  @Column()
+  @Column({ length: 255 })
   @Exclude()
   password: string;
 
-  @Column()
-  username: string;
+  @Column({ name: 'full_name', length: 255 })
+  fullName: string;
 
-  @Column({ nullable: true })
-  bio: string;
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  phone: string | null;
 
-  @Column({ nullable: true })
-  image: string;
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: UserRole.USER,
+  })
+  role: UserRole;
 
-  @Column({ default: false })
-  following: boolean;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
 
-  // Articles written
-  @OneToMany(() => ArticleEntity, (article) => article.author)
-  articles: ArticleEntity[];
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date;
 
-  // Favorites article
-  @ManyToMany(() => ArticleEntity, (article) => article.favoritedBy)
-  favorites: ArticleEntity[];
+  @OneToMany(() => AuthSessionEntity, (session) => session.user)
+  authSessions: AuthSessionEntity[];
+
+  // Backward-compatible view fields for modules that still read legacy user shape.
+  get username(): string {
+    return this.fullName;
+  }
+
+  get bio(): string | null {
+    return null;
+  }
+
+  get image(): string | null {
+    return null;
+  }
+
+  get following(): boolean {
+    return false;
+  }
 }
