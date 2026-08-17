@@ -2,8 +2,8 @@ import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
-import { RedisService } from '../redis/redis.service';
-import { AuthGuard } from './auth.guard';
+import { RedisService } from 'src/modules/redis/redis.service';
+import { AuthGuard } from '../auth.guard';
 
 describe('AuthGuard', () => {
   const jwtService = { verifyAsync: jest.fn() };

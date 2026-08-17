@@ -3,7 +3,8 @@
     "invalidCredentials": "Email hoặc mật khẩu không đúng",
     "existEmail": "Email đã tồn tại, vui lòng chọn email khác",
     "registrationFailed": "Đăng ký người dùng thất bại",
-    "invalidRefreshToken": "Refresh token không hợp lệ hoặc đã hết hạn"
+    "invalidRefreshToken": "Refresh token không hợp lệ hoặc đã hết hạn",
+    "insufficientRole": "Bạn không có quyền thực hiện thao tác này"
   },
   "notFound": "{field} không tìm thấy",
   "invalid": "Có gì đó không đúng, vui lòng thử lại sau"

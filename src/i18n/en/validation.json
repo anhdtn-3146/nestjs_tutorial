@@ -3,5 +3,8 @@
   "emailInvalid": "Email is invalid",
   "minLength": "{field} must be at least {min} characters",
   "maxLength": "{field} must be at most {max} characters",
+  "integer": "{field} must be an integer",
+  "minValue": "{field} must be at least {min}",
+  "string": "{field} must be a string",
   "urlInvalid": "URL is invalid"
 }

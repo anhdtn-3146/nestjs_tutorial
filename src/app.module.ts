@@ -8,6 +8,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AcceptLanguageResolver, I18nModule, QueryResolver } from 'nestjs-i18n';
 import * as path from 'path';
 import { RedisModule } from './modules/redis/redis.module';
+import { ToursModule } from './modules/tours/tours.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RedisModule } from './modules/redis/redis.module';
     RedisModule,
     AuthModule,
     UsersModule,
+    ToursModule,
   ],
   controllers: [AppController],
   providers: [AppService],

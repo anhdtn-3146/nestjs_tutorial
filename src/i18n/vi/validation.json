@@ -3,5 +3,8 @@
   "emailInvalid": "Email không hợp lệ",
   "minLength": "{field} tối thiểu {min} ký tự",
   "maxLength": "{field} tối đa {max} ký tự",
+  "integer": "{field} phải là số nguyên",
+  "minValue": "{field} phải lớn hơn hoặc bằng {min}",
+  "string": "{field} phải là chuỗi",
   "urlInvalid": "URL không hợp lệ"
 }

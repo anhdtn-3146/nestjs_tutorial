@@ -7,10 +7,10 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from './public.decorator';
+import { IS_PUBLIC_KEY } from 'src/modules/auth/public.decorator';
 import { ConfigService } from '@nestjs/config';
-import { RedisService } from '../redis/redis.service';
-import { AccessTokenPayload } from './auth.types';
+import { RedisService } from 'src/modules/redis/redis.service';
+import { AccessTokenPayload } from 'src/modules/auth/auth.types';
 import { Request } from 'express';
 
 type AuthenticatedRequest = Request & { user?: AccessTokenPayload };
