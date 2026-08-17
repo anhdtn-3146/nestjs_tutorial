@@ -1,11 +1,13 @@
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
-  IsOptional,
-  IsUrl,
+  IsString,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { i18nValidationMessage } from 'nestjs-i18n';
+import { UserRole } from 'src/database/entities/user.entity';
 
 export class UpdateUserDto {
   @IsNotEmpty({
@@ -21,34 +23,36 @@ export class UpdateUserDto {
   )
   email: string;
 
+  @ValidateIf((_, value) => value !== undefined)
   @IsNotEmpty({
     message: i18nValidationMessage('validation.required', {
-      field: 'Username',
+      field: 'Full name',
     }),
   })
   @MaxLength(255, {
     message: i18nValidationMessage('validation.maxLength', {
-      field: 'Username',
+      field: 'Full name',
       max: 255,
     }),
   })
-  username: string;
+  fullName?: string;
 
-  @IsOptional()
-  @MaxLength(255, {
+  @ValidateIf((_, value) => value !== undefined && value !== null)
+  @IsNotEmpty({
+    message: i18nValidationMessage('validation.required', {
+      field: 'Phone',
+    }),
+  })
+  @IsString()
+  @MaxLength(20, {
     message: i18nValidationMessage('validation.maxLength', {
-      field: 'Bio',
-      max: 255,
+      field: 'Phone',
+      max: 20,
     }),
   })
-  bio?: string;
+  phone?: string | null;
 
-  @IsOptional()
-  @IsUrl(
-    {},
-    {
-      message: i18nValidationMessage('validation.urlInvalid'),
-    },
-  )
-  image?: string;
+  @ValidateIf((_, value) => value !== undefined)
+  @IsEnum(UserRole)
+  role?: UserRole;
 }

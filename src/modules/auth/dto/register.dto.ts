@@ -1,18 +1,27 @@
-import { IsNotEmpty, MaxLength } from 'class-validator';
+import { IsOptional, IsNotEmpty, MaxLength } from 'class-validator';
 import { LoginDto } from './login.dto';
 import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class RegisterDto extends LoginDto {
   @IsNotEmpty({
     message: i18nValidationMessage('validation.required', {
-      field: 'Username',
+      field: 'Full name',
     }),
   })
   @MaxLength(255, {
     message: i18nValidationMessage('validation.maxLength', {
-      field: 'Username',
+      field: 'Full name',
       max: 255,
     }),
   })
-  username: string;
+  fullName: string;
+
+  @IsOptional()
+  @MaxLength(20, {
+    message: i18nValidationMessage('validation.maxLength', {
+      field: 'Phone',
+      max: 20,
+    }),
+  })
+  phone?: string;
 }

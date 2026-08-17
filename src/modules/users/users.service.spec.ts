@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { I18nService } from 'nestjs-i18n';
 import { UserEntity } from 'src/database/entities/user.entity';
 import { UsersService } from './users.service';
 
@@ -22,6 +23,10 @@ describe('UsersService', () => {
           provide: getRepositoryToken(UserEntity),
           useValue: userRepository,
         },
+        {
+          provide: I18nService,
+          useValue: { t: jest.fn((key: string) => key) },
+        },
       ],
     }).compile();
 
@@ -38,7 +43,7 @@ describe('UsersService', () => {
       userRepository.findOne.mockResolvedValue(user);
       const result = await service.findById(1);
       expect(userRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
-      expect(result).toBe(user);
+      expect(result).toEqual({ id: 1, email: 'test@example.com' });
     });
   });
 
@@ -59,7 +64,7 @@ describe('UsersService', () => {
       const data = {
         email: 'new@user.com',
         password: 'pass',
-        username: 'newuser',
+        fullName: 'New User',
       };
       const user = { id: 3, ...data } as UserEntity;
       userRepository.save.mockResolvedValue(user);
