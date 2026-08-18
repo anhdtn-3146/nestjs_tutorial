@@ -1,13 +1,18 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMinSize,
+  IsArray,
   IsInt,
   IsNotEmpty,
   IsString,
   MaxLength,
   Min,
+  ValidateNested,
   ValidateIf,
 } from 'class-validator';
 import { i18nValidationMessage } from 'nestjs-i18n';
+import { parseJsonArrayAs } from 'src/common/transforms/json.transform';
+import { CreateTourTimeDto } from './create-tour-time.dto';
 
 export class CreateTourDto {
   @Type(() => Number)
@@ -45,4 +50,11 @@ export class CreateTourDto {
     }),
   })
   declare description?: string | null;
+
+  @Transform(parseJsonArrayAs(CreateTourTimeDto))
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreateTourTimeDto)
+  declare tour_times: CreateTourTimeDto[];
 }

@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   Index,
   JoinColumn,
@@ -20,6 +21,7 @@ export enum TourTimeStatus {
 
 @Entity('tour_times')
 @Index('IDX_tour_times_tour_id', ['tourId'])
+@Index('IDX_tour_times_tour_deleted_at', ['tourId', 'deletedAt'])
 export class TourTimeEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -53,6 +55,9 @@ export class TourTimeEntity {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', nullable: true })
+  deletedAt: Date | null;
 
   @OneToMany(() => BookingEntity, (booking) => booking.tourTime)
   bookings: BookingEntity[];

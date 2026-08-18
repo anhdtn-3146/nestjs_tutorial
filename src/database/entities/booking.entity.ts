@@ -37,7 +37,8 @@ export class BookingEntity {
   tourTimeId: number;
 
   @ManyToOne(() => TourTimeEntity, (tourTime) => tourTime.bookings, {
-    onDelete: 'CASCADE',
+    // Keep booking history safe; a booked departure must not be deleted.
+    onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'tour_time_id' })
   tourTime: TourTimeEntity;

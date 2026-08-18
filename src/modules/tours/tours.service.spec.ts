@@ -1,179 +1,405 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
+import { BookingEntity } from 'src/database/entities/booking.entity';
 import { CategoryEntity } from 'src/database/entities/category.entity';
+import {
+  TourTimeEntity,
+  TourTimeStatus,
+} from 'src/database/entities/tour-time.entity';
 import { TourEntity } from 'src/database/entities/tour.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ToursService } from './tours.service';
 
 describe('ToursService', () => {
   let service: ToursService;
-  let tourRepository: jest.Mocked<
-    Pick<
-      Repository<TourEntity>,
-      'createQueryBuilder' | 'findOne' | 'create' | 'save' | 'delete'
-    >
-  >;
-  let categoryRepository: jest.Mocked<
-    Pick<Repository<CategoryEntity>, 'findOne'>
-  >;
-  const query = {
-    leftJoinAndSelect: jest.fn(),
-    orderBy: jest.fn(),
-    skip: jest.fn(),
-    take: jest.fn(),
-    getManyAndCount: jest.fn(),
-  };
+  let tours: jest.Mocked<Partial<Repository<TourEntity>>>;
+  let bookings: jest.Mocked<Partial<Repository<BookingEntity>>>;
+  let categories: jest.Mocked<Partial<Repository<CategoryEntity>>>;
+  let transactionTours: jest.Mocked<Partial<Repository<TourEntity>>>;
+  let transactionTimes: jest.Mocked<Partial<Repository<TourTimeEntity>>>;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-    tourRepository = {
-      createQueryBuilder: jest.fn(),
+    transactionTours = {
+      create: jest.fn((value) => value as TourEntity),
+      save: jest.fn(async (value) => ({ id: 1, ...value }) as TourEntity),
+      findOneByOrFail: jest.fn(),
       findOne: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      delete: jest.fn(),
     };
-    query.leftJoinAndSelect.mockReturnValue(query);
-    query.orderBy.mockReturnValue(query);
-    query.skip.mockReturnValue(query);
-    query.take.mockReturnValue(query);
-    tourRepository.createQueryBuilder.mockReturnValue(query as never);
-    categoryRepository = { findOne: jest.fn() };
+    transactionTimes = {
+      create: jest.fn((value) => value as TourTimeEntity),
+      save: jest.fn(async (value) => value as TourTimeEntity),
+      find: jest.fn(),
+      softRemove: jest.fn(),
+    };
+    tours = {
+      findOne: jest.fn(),
+      delete: jest.fn(),
+      createQueryBuilder: jest.fn(),
+    };
+    bookings = { count: jest.fn().mockResolvedValue(0) };
+    categories = { findOne: jest.fn() };
+    const dataSource = {
+      transaction: jest.fn(async (callback) =>
+        callback({
+          getRepository: (entity: unknown) => {
+            if (entity === TourEntity) return transactionTours;
+            if (entity === TourTimeEntity) return transactionTimes;
+            if (entity === BookingEntity) return bookings;
+            return categories;
+          },
+        }),
+      ),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ToursService,
-        {
-          provide: getRepositoryToken(TourEntity),
-          useValue: tourRepository,
-        },
-        {
-          provide: getRepositoryToken(CategoryEntity),
-          useValue: categoryRepository,
-        },
+        { provide: getRepositoryToken(TourEntity), useValue: tours },
+        { provide: getRepositoryToken(BookingEntity), useValue: bookings },
+        { provide: getRepositoryToken(CategoryEntity), useValue: categories },
+        { provide: DataSource, useValue: dataSource },
         {
           provide: I18nService,
           useValue: { t: jest.fn((key: string) => key) },
         },
       ],
     }).compile();
-
     service = module.get(ToursService);
   });
 
-  it('lists tours and returns a tour detail with its category', async () => {
-    const tour = { id: 1, title: 'Hue city tour' } as TourEntity;
-    query.getManyAndCount.mockResolvedValue([[tour], 1]);
-    tourRepository.findOne.mockResolvedValue(tour);
-
-    await expect(service.findAll({ limit: 10, offset: 5 })).resolves.toEqual({
-      tours: [tour],
-      page: { total: 1, limit: 10, offset: 5 },
-    });
-    await expect(service.findOne(1)).resolves.toBe(tour);
-    expect(query.skip).toHaveBeenCalledWith(5);
-    expect(query.take).toHaveBeenCalledWith(10);
-    expect(tourRepository.findOne).toHaveBeenCalledWith({
-      where: { id: 1 },
-      relations: { category: true },
-    });
-  });
-
-  it('creates a tour after validating its category', async () => {
+  it('creates one tour and multiple times atomically', async () => {
+    categories.findOne!.mockResolvedValue({ id: 2 } as CategoryEntity);
+    tours.findOne!.mockResolvedValue({ id: 1, tourTimes: [] } as TourEntity);
     const dto = {
       category_id: 2,
       title: 'Da Nang discovery',
-      description: 'Three-day tour',
+      tour_times: [
+        {
+          start_date: '2030-01-01',
+          end_date: '2030-01-03',
+          price: 100,
+          max_capacity: 20,
+        },
+        {
+          start_date: '2030-02-01',
+          end_date: '2030-02-03',
+          price: 120,
+          max_capacity: 15,
+        },
+      ],
     };
-    const tour = { id: 1, categoryId: 2, ...dto } as unknown as TourEntity;
-    categoryRepository.findOne.mockResolvedValue({ id: 2 } as CategoryEntity);
-    tourRepository.create.mockReturnValue(tour);
-    tourRepository.save.mockResolvedValue(tour);
 
-    await expect(service.create(dto)).resolves.toBe(tour);
-    expect(categoryRepository.findOne).toHaveBeenCalledWith({
-      where: { id: 2 },
-    });
-    expect(tourRepository.create).toHaveBeenCalledWith({
-      categoryId: 2,
-      title: dto.title,
-      description: dto.description,
-    });
+    await expect(service.create(dto)).resolves.toMatchObject({ id: 1 });
+    expect(transactionTimes.save).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ tourId: 1, status: TourTimeStatus.OPEN }),
+      ]),
+    );
   });
 
-  it('rejects creation when the category does not exist', async () => {
-    categoryRepository.findOne.mockResolvedValue(null);
-
+  it('requires an existing category', async () => {
+    categories.findOne!.mockResolvedValue(null);
     await expect(
       service.create({
-        category_id: 999,
-        title: 'Unknown category',
+        category_id: 99,
+        title: 'Missing',
+        tour_times: [
+          {
+            start_date: '2030-01-01',
+            end_date: '2030-01-02',
+            price: 10,
+            max_capacity: 1,
+          },
+        ],
       }),
     ).rejects.toThrow(NotFoundException);
-    expect(tourRepository.save).not.toHaveBeenCalled();
   });
 
-  it('updates only supplied fields', async () => {
-    const tour = {
+  it('rejects overlapping times in the same request', async () => {
+    categories.findOne!.mockResolvedValue({ id: 1 } as CategoryEntity);
+    await expect(
+      service.create({
+        category_id: 1,
+        title: 'Overlap',
+        tour_times: [
+          {
+            start_date: '2030-01-01',
+            end_date: '2030-01-05',
+            price: 10,
+            max_capacity: 1,
+          },
+          {
+            start_date: '2030-01-05',
+            end_date: '2030-01-06',
+            price: 10,
+            max_capacity: 1,
+          },
+        ],
+      }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('returns booking flags used by the edit form', async () => {
+    tours.findOne!.mockResolvedValue({
       id: 1,
-      categoryId: 2,
-      title: 'Old title',
-      description: null,
-    } as TourEntity;
-    tourRepository.findOne.mockResolvedValue(tour);
-    tourRepository.save.mockImplementation(async (value) => value as TourEntity);
+      tourTimes: [
+        {
+          id: 5,
+          tourId: 1,
+          startDate: '2030-01-01',
+          endDate: '2030-01-03',
+          price: '2500000.00',
+          maxCapacity: 20,
+          status: TourTimeStatus.OPEN,
+          deletedAt: null,
+        } as TourTimeEntity,
+      ],
+    } as TourEntity);
+    bookings.count!.mockResolvedValue(2);
 
-    const result = await service.update(1, {
-      title: 'New title',
+    await expect(service.findOne(1)).resolves.toEqual({
+      id: 1,
+      tourTimes: [
+        {
+          id: 5,
+          tourId: 1,
+          startDate: '2030-01-01',
+          endDate: '2030-01-03',
+          price: '2500000.00',
+          maxCapacity: 20,
+          status: TourTimeStatus.OPEN,
+          hasBookings: true,
+        },
+      ],
     });
-
-    expect(result.title).toBe('New title');
-    expect(result.categoryId).toBe(2);
   });
 
-  it('deletes an existing tour', async () => {
-    tourRepository.findOne.mockResolvedValue({ id: 1 } as TourEntity);
-    tourRepository.delete.mockResolvedValue({ raw: [], affected: 1 });
-
-    await expect(service.delete(1)).resolves.toEqual({ success: true });
-    expect(tourRepository.delete).toHaveBeenCalledWith(1);
-  });
-
-  it('returns BadRequestException when create persistence fails', async () => {
-    const tour = { title: 'Broken tour' } as TourEntity;
-    categoryRepository.findOne.mockResolvedValue({ id: 1 } as CategoryEntity);
-    tourRepository.create.mockReturnValue(tour);
-    tourRepository.save.mockRejectedValue(new Error('Database error'));
+  it.each([
+    { caseName: 'duplicate IDs', submittedIds: [5, 5], deletedIds: [6] },
+    { caseName: 'foreign IDs', submittedIds: [99], deletedIds: [5, 6] },
+    {
+      caseName: 'update-delete conflict',
+      submittedIds: [5],
+      deletedIds: [5, 6],
+    },
+  ])('rejects invalid submitted IDs: $caseName', async (testCase) => {
+    transactionTours.findOne!.mockResolvedValue({ id: 1 } as TourEntity);
+    transactionTimes.find!.mockResolvedValue([
+      { id: 5, tourId: 1 } as TourTimeEntity,
+      { id: 6, tourId: 1 } as TourTimeEntity,
+    ]);
+    categories.findOne!.mockResolvedValue({ id: 1 } as CategoryEntity);
 
     await expect(
-      service.create({ category_id: 1, title: 'Broken tour' }),
+      service.update(1, {
+        category_id: 1,
+        title: 'Invalid snapshot',
+        tour_times: testCase.submittedIds.map((id) => ({
+          id,
+          start_date: '2030-01-01',
+          end_date: '2030-01-02',
+          price: 10,
+          max_capacity: 10,
+          status: TourTimeStatus.OPEN,
+        })),
+        deleted_tour_time_ids: testCase.deletedIds,
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('returns BadRequestException when update persistence fails', async () => {
-    tourRepository.findOne.mockResolvedValue({ id: 1 } as TourEntity);
-    tourRepository.save.mockRejectedValue(new Error('Database error'));
+  it('keeps existing times that are omitted from the update payload', async () => {
+    const submittedTime = {
+      id: 5,
+      tourId: 1,
+      startDate: '2030-01-01',
+      endDate: '2030-01-02',
+      price: '10.00',
+      maxCapacity: 10,
+      status: TourTimeStatus.OPEN,
+    } as TourTimeEntity;
+    const omittedTime = {
+      id: 6,
+      tourId: 1,
+      startDate: '2030-03-01',
+      endDate: '2030-03-02',
+      price: '30.00',
+      maxCapacity: 10,
+      status: TourTimeStatus.OPEN,
+    } as TourTimeEntity;
+    transactionTours.findOne!.mockResolvedValue({ id: 1 } as TourEntity);
+    transactionTimes.find!.mockResolvedValue([submittedTime, omittedTime]);
+    categories.findOne!.mockResolvedValue({ id: 1 } as CategoryEntity);
 
-    await expect(service.update(1, { title: 'Broken update' })).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(
+      service.update(1, {
+        category_id: 1,
+        title: 'Partial schedule update',
+        tour_times: [
+          {
+            id: 5,
+            start_date: '2030-01-01',
+            end_date: '2030-01-02',
+            price: 10,
+            max_capacity: 10,
+            status: TourTimeStatus.OPEN,
+          },
+        ],
+      }),
+    ).resolves.toEqual({ success: true });
+
+    expect(transactionTimes.save).toHaveBeenCalledWith([submittedTime]);
+    expect(transactionTimes.softRemove).not.toHaveBeenCalled();
   });
 
-  it('returns BadRequestException when delete persistence fails', async () => {
-    tourRepository.findOne.mockResolvedValue({ id: 1 } as TourEntity);
-    tourRepository.delete.mockRejectedValue(new Error('Database error'));
-
-    await expect(service.delete(1)).rejects.toThrow(BadRequestException);
+  it('saves existing and new times from the complete edit form', async () => {
+    const currentTime = {
+      id: 5,
+      tourId: 1,
+      startDate: '2030-01-01',
+      endDate: '2030-01-02',
+      price: '10.00',
+      maxCapacity: 10,
+      status: TourTimeStatus.OPEN,
+    } as TourTimeEntity;
+    const deletedTime = {
+      id: 6,
+      tourId: 1,
+      startDate: '2030-03-01',
+      endDate: '2030-03-02',
+      price: '30.00',
+      maxCapacity: 10,
+      status: TourTimeStatus.OPEN,
+    } as TourTimeEntity;
+    transactionTours.findOne!.mockResolvedValue({
+      id: 1,
+    } as TourEntity);
+    transactionTimes.find!.mockResolvedValue([currentTime, deletedTime]);
+    categories.findOne!.mockResolvedValue({ id: 1 } as CategoryEntity);
+    await expect(
+      service.update(1, {
+        category_id: 1,
+        title: 'Complete edit',
+        tour_times: [
+          {
+            id: 5,
+            start_date: '2030-01-01',
+            end_date: '2030-01-02',
+            price: 10,
+            max_capacity: 10,
+            status: TourTimeStatus.CLOSED,
+          },
+          {
+            start_date: '2030-02-01',
+            end_date: '2030-02-02',
+            price: 20,
+            max_capacity: 20,
+            status: TourTimeStatus.OPEN,
+          },
+        ],
+        deleted_tour_time_ids: [6],
+      }),
+    ).resolves.toEqual({ success: true });
+    expect(transactionTimes.save).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 5, status: TourTimeStatus.CLOSED }),
+        expect.objectContaining({ tourId: 1, status: TourTimeStatus.OPEN }),
+      ]),
+    );
+    expect(transactionTimes.softRemove).toHaveBeenCalledWith(deletedTime);
   });
 
-  it('rejects update and delete for a missing tour', async () => {
-    tourRepository.findOne.mockResolvedValue(null);
+  it('rejects cancelling a booked time in full edit', async () => {
+    transactionTours.findOne!.mockResolvedValue({
+      id: 1,
+    } as TourEntity);
+    transactionTimes.find!.mockResolvedValue([
+      {
+        id: 5,
+        tourId: 1,
+        startDate: '2030-01-01',
+        endDate: '2030-01-02',
+        price: '10.00',
+        maxCapacity: 10,
+        status: TourTimeStatus.OPEN,
+      } as TourTimeEntity,
+    ]);
+    categories.findOne!.mockResolvedValue({ id: 1 } as CategoryEntity);
+    bookings.count!.mockResolvedValue(1);
 
-    await expect(service.update(999, { title: 'Missing' })).rejects.toThrow(
-      NotFoundException,
-    );
-    await expect(service.delete(999)).rejects.toThrow(NotFoundException);
+    await expect(
+      service.update(1, {
+        category_id: 1,
+        title: 'Cancel booked time',
+        tour_times: [
+          {
+            id: 5,
+            start_date: '2030-01-01',
+            end_date: '2030-01-02',
+            price: 10,
+            max_capacity: 10,
+            status: TourTimeStatus.CANCELLED,
+          },
+        ],
+      }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it.each([
+    {
+      caseName: 'started time',
+      startDate: '2020-01-01',
+      currentStatus: TourTimeStatus.OPEN,
+      submittedStatus: TourTimeStatus.CLOSED,
+    },
+    {
+      caseName: 'cancelled time',
+      startDate: '2030-01-01',
+      currentStatus: TourTimeStatus.CANCELLED,
+      submittedStatus: TourTimeStatus.OPEN,
+    },
+  ])('rejects changing a $caseName', async (testCase) => {
+    transactionTours.findOne!.mockResolvedValue({ id: 1 } as TourEntity);
+    transactionTimes.find!.mockResolvedValue([
+      {
+        id: 5,
+        tourId: 1,
+        startDate: testCase.startDate,
+        endDate: testCase.startDate,
+        price: '10.00',
+        maxCapacity: 10,
+        status: testCase.currentStatus,
+      } as TourTimeEntity,
+    ]);
+    categories.findOne!.mockResolvedValue({ id: 1 } as CategoryEntity);
+
+    await expect(
+      service.update(1, {
+        category_id: 1,
+        title: 'Invalid transition',
+        tour_times: [
+          {
+            id: 5,
+            start_date: testCase.startDate,
+            end_date: testCase.startDate,
+            price: 10,
+            max_capacity: 10,
+            status: testCase.submittedStatus,
+          },
+        ],
+      }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('does not delete a tour with booking history', async () => {
+    tours.findOne!.mockResolvedValue({ id: 1 } as TourEntity);
+    bookings.count!.mockResolvedValue(1);
+    await expect(service.delete(1)).rejects.toThrow(ConflictException);
+    expect(tours.delete).not.toHaveBeenCalled();
   });
 });

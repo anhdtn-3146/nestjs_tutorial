@@ -7,5 +7,16 @@
     "insufficientRole": "Bạn không có quyền thực hiện thao tác này"
   },
   "notFound": "{field} không tìm thấy",
-  "invalid": "Có gì đó không đúng, vui lòng thử lại sau"
+  "invalid": "Có gì đó không đúng, vui lòng thử lại sau",
+  "tourTime": {
+    "invalidRange": "Ngày kết thúc không được trước ngày bắt đầu",
+    "overlap": "Lịch này trùng với một lịch đang hoạt động của tour",
+    "started": "Không thể thay đổi lịch đã bắt đầu",
+    "hasBookings": "Không thể sửa, hủy hoặc xóa lịch đã có booking",
+    "invalidTransition": "Không thể chuyển sang trạng thái lịch này",
+    "invalidEditSet": "Danh sách lịch chứa ID trùng, không thuộc tour hoặc vừa cập nhật vừa xóa"
+  },
+  "tour": {
+    "hasBookings": "Không thể xóa tour đã có booking"
+  }
 }

@@ -7,5 +7,16 @@
     "insufficientRole": "You do not have permission to perform this action"
   },
   "notFound": "{field} not found",
-  "invalid": "Something went wrong, please try again later"
+  "invalid": "Something went wrong, please try again later",
+  "tourTime": {
+    "invalidRange": "The end date must not be before the start date",
+    "overlap": "This schedule overlaps another active schedule of the tour",
+    "started": "A schedule that has started cannot be changed",
+    "hasBookings": "A schedule with bookings cannot be edited, cancelled or deleted",
+    "invalidTransition": "This schedule status transition is not allowed",
+    "invalidEditSet": "The submitted schedule list contains duplicate, foreign or conflicting schedule IDs"
+  },
+  "tour": {
+    "hasBookings": "A tour with bookings cannot be deleted"
+  }
 }
