@@ -6,8 +6,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Check,
 } from 'typeorm';
 import { AuthSessionEntity } from './auth-session.entity';
+import { BookingEntity } from './booking.entity';
 
 export enum UserRole {
   USER = 'user',
@@ -15,6 +17,7 @@ export enum UserRole {
 }
 
 @Entity('users')
+@Check('CHK_users_role', `"role" IN ('user', 'admin')`)
 export class UserEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -34,7 +37,7 @@ export class UserEntity {
 
   @Column({
     type: 'varchar',
-    length: 20,
+    length: 50,
     default: UserRole.USER,
   })
   role: UserRole;
@@ -47,6 +50,9 @@ export class UserEntity {
 
   @OneToMany(() => AuthSessionEntity, (session) => session.user)
   authSessions: AuthSessionEntity[];
+
+  @OneToMany(() => BookingEntity, (booking) => booking.user)
+  bookings: BookingEntity[];
 
   // Backward-compatible view fields for modules that still read legacy user shape.
   get username(): string {
