@@ -1,5 +1,6 @@
 import {
   Column,
+  Check,
   CreateDateColumn,
   Entity,
   Index,
@@ -13,13 +14,18 @@ import { TourTimeEntity } from './tour-time.entity';
 
 export enum BookingStatus {
   PENDING = 'pending',
-  CONFIRMED = 'confirmed',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
   CANCELLED = 'cancelled',
 }
 
 @Entity('bookings')
 @Index('IDX_bookings_user_id', ['userId'])
 @Index('IDX_bookings_tour_time_id', ['tourTimeId'])
+@Check(
+  'CHK_bookings_status',
+  `"status" IN ('pending', 'approved', 'rejected', 'cancelled')`,
+)
 export class BookingEntity {
   @PrimaryGeneratedColumn()
   id: number;
