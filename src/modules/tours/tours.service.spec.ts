@@ -180,6 +180,160 @@ describe('ToursService', () => {
     });
   });
 
+  it('returns a paginated public list with only public response fields', async () => {
+    const queryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([
+        [
+          {
+            id: 2,
+            categoryId: 1,
+            category: { id: 1, name: 'Beach', description: 'Internal' },
+            title: 'Da Nang',
+            description: 'Three days',
+            createdAt: new Date(),
+            images: [
+              {
+                id: 8,
+                imageUrl: '/uploads/tours/image.jpg',
+                sortOrder: 0,
+                createdAt: new Date(),
+              },
+            ],
+            tourTimes: [
+              {
+                id: 5,
+                tourId: 2,
+                startDate: '2030-01-01',
+                endDate: '2030-01-03',
+                price: '2500000.00',
+                maxCapacity: 20,
+                status: TourTimeStatus.OPEN,
+                deletedAt: null,
+              },
+            ],
+          } as TourEntity,
+        ],
+        1,
+      ]),
+    };
+    tours.createQueryBuilder!.mockReturnValue(queryBuilder as never);
+
+    await expect(service.findPublic({ limit: 10, offset: 0 })).resolves.toEqual(
+      {
+        tours: [
+          {
+            id: 2,
+            categoryId: 1,
+            category: { id: 1, name: 'Beach' },
+            title: 'Da Nang',
+            description: 'Three days',
+            images: [
+              {
+                id: 8,
+                imageUrl: '/uploads/tours/image.jpg',
+                sortOrder: 0,
+              },
+            ],
+            tourTimes: [
+              {
+                id: 5,
+                tourId: 2,
+                startDate: '2030-01-01',
+                endDate: '2030-01-03',
+                price: '2500000.00',
+                maxCapacity: 20,
+                status: TourTimeStatus.OPEN,
+              },
+            ],
+          },
+        ],
+        page: { total: 1, limit: 10, offset: 0 },
+      },
+    );
+    expect(queryBuilder.innerJoinAndSelect).toHaveBeenCalledWith(
+      'tour.tourTimes',
+      'tourTime',
+      'tourTime.status = :status AND tourTime.startDate > :today',
+      {
+        status: TourTimeStatus.OPEN,
+        today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      },
+    );
+  });
+
+  it('returns public tour detail with selectable future open times', async () => {
+    const tour = {
+      id: 2,
+      categoryId: 1,
+      category: { id: 1, name: 'Beach' },
+      title: 'Da Nang',
+      description: 'Three days',
+      images: [{ id: 8, imageUrl: '/uploads/tours/image.jpg', sortOrder: 0 }],
+      tourTimes: [
+        {
+          id: 5,
+          tourId: 2,
+          startDate: '2030-01-01',
+          endDate: '2030-01-03',
+          price: '2500000.00',
+          maxCapacity: 20,
+          status: TourTimeStatus.OPEN,
+        },
+        {
+          id: 6,
+          tourId: 2,
+          startDate: '2030-02-01',
+          endDate: '2030-02-03',
+          price: '2700000.00',
+          maxCapacity: 15,
+          status: TourTimeStatus.OPEN,
+        },
+      ],
+    } as TourEntity;
+    const queryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(tour),
+    };
+    tours.createQueryBuilder!.mockReturnValue(queryBuilder as never);
+
+    await expect(service.findPublicOne(2)).resolves.toEqual({
+      id: 2,
+      categoryId: 1,
+      category: { id: 1, name: 'Beach' },
+      title: 'Da Nang',
+      description: 'Three days',
+      images: [{ id: 8, imageUrl: '/uploads/tours/image.jpg', sortOrder: 0 }],
+      tourTimes: tour.tourTimes,
+    });
+    expect(queryBuilder.where).toHaveBeenCalledWith('tour.id = :id', {
+      id: 2,
+    });
+  });
+
+  it('does not expose a public detail without available times', async () => {
+    const queryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(null),
+    };
+    tours.createQueryBuilder!.mockReturnValue(queryBuilder as never);
+
+    await expect(service.findPublicOne(2)).rejects.toThrow(NotFoundException);
+  });
+
   it.each([
     { caseName: 'duplicate IDs', submittedIds: [5, 5], deletedIds: [6] },
     { caseName: 'foreign IDs', submittedIds: [99], deletedIds: [5, 6] },

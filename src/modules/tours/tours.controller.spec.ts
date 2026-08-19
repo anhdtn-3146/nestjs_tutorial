@@ -1,12 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
+import { ROLES_KEY } from 'src/common/decorators/roles.decorator';
 import { TourTimeStatus } from 'src/database/entities/tour-time.entity';
+import { UserRole } from 'src/database/entities/user.entity';
+import { IS_PUBLIC_KEY } from 'src/modules/auth/public.decorator';
 import { ToursController } from './tours.controller';
 import { ToursService } from './tours.service';
 
 describe('ToursController', () => {
   let controller: ToursController;
   const toursService = {
+    findPublic: jest.fn(),
+    findPublicOne: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
@@ -29,6 +34,42 @@ describe('ToursController', () => {
     controller = module.get(ToursController);
     jest.clearAllMocks();
   });
+
+  it('delegates public list and detail with public metadata', async () => {
+    const query = { limit: 10, offset: 20 };
+    toursService.findPublic.mockResolvedValue({
+      tours: [],
+      page: { total: 0, ...query },
+    });
+    toursService.findPublicOne.mockResolvedValue({ id: 2, tourTimes: [] });
+
+    await expect(controller.findPublic(query)).resolves.toEqual({
+      tours: [],
+      page: { total: 0, ...query },
+    });
+    await expect(controller.findPublicOne(2)).resolves.toEqual({
+      id: 2,
+      tourTimes: [],
+    });
+    expect(Reflect.getMetadata(IS_PUBLIC_KEY, controller.findPublic)).toBe(
+      true,
+    );
+    expect(Reflect.getMetadata(IS_PUBLIC_KEY, controller.findPublicOne)).toBe(
+      true,
+    );
+    expect(Reflect.getMetadata(IS_PUBLIC_KEY, ToursController)).toBeUndefined();
+    expect(toursService.findPublic).toHaveBeenCalledWith(query);
+    expect(toursService.findPublicOne).toHaveBeenCalledWith(2);
+  });
+
+  it.each(['findAll', 'findOne', 'create', 'update', 'delete'] as const)(
+    'requires the admin role for %s',
+    (method) => {
+      expect(Reflect.getMetadata(ROLES_KEY, controller[method])).toEqual([
+        UserRole.ADMIN,
+      ]);
+    },
+  );
 
   it('delegates list, detail, create, update and delete to the service', async () => {
     const createDto = {

@@ -3,6 +3,18 @@
 A tour is the reusable product and a `tour_time` is one departure. Adding a
 departure to an existing tour does not create or clone a tour.
 
+## Public tour list
+
+`GET /api/tours?limit=20&offset=0` is public and does not require an access
+token. It returns paginated tours that have at least one future `open`
+departure. Only future open departures are included in each tour. `limit`
+defaults to 20; `offset` defaults to 0.
+
+`GET /api/tours/:id` is also public. It returns the selected Tour with its
+images and all future `open` departures, ordered by start date. The client uses
+the chosen `tourTimes[].id` as the departure identifier for the next booking
+step. A Tour without any available departure is returned as not found.
+
 ## Create a tour
 
 `POST /api/admin/tours` accepts `multipart/form-data`. Text fields are sent

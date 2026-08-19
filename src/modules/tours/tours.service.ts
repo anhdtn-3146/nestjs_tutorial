@@ -29,6 +29,7 @@ import { CreateTourDto } from './dto/create-tour.dto';
 import { EditTourTimeDto } from './dto/edit-tour-time.dto';
 import { ListTourDto } from './dto/list-tour.dto';
 import { UpdateTourDto } from './dto/update-tour.dto';
+import { TourSerializer } from './serializers/tour.serializer';
 import { TourImageUpload } from './tour-upload.config';
 
 interface StoredTourImage {
@@ -88,6 +89,56 @@ export class ToursService {
     query.skip(offset).take(limit);
     const [tours, toursCount] = await query.getManyAndCount();
     return { tours, page: { total: toursCount, limit, offset } };
+  }
+
+  private createPublicTourQuery() {
+    const today = new Date().toISOString().slice(0, 10);
+
+    return this.tourRepository
+      .createQueryBuilder('tour')
+      .leftJoinAndSelect('tour.category', 'category')
+      .innerJoinAndSelect(
+        'tour.tourTimes',
+        'tourTime',
+        'tourTime.status = :status AND tourTime.startDate > :today',
+        { status: TourTimeStatus.OPEN, today },
+      )
+      .leftJoinAndSelect('tour.images', 'image');
+  }
+
+  async findPublic(queryParams: ListTourDto) {
+    const limit = queryParams.limit ?? DEFAULT_LIMIT;
+    const offset = queryParams.offset ?? DEFAULT_OFFSET;
+    const query = this.createPublicTourQuery()
+      .orderBy('tour.id', 'DESC')
+      .addOrderBy('tourTime.startDate', 'ASC')
+      .addOrderBy('image.sortOrder', 'ASC')
+      .skip(offset)
+      .take(limit);
+    const [tours, toursCount] = await query.getManyAndCount();
+
+    return {
+      tours: tours.map((tour) =>
+        new TourSerializer(tour, { type: 'PUBLIC' }).serialize(),
+      ),
+      page: { total: toursCount, limit, offset },
+    };
+  }
+
+  async findPublicOne(id: number) {
+    const tour = await this.createPublicTourQuery()
+      .where('tour.id = :id', { id })
+      .orderBy('tourTime.startDate', 'ASC')
+      .addOrderBy('image.sortOrder', 'ASC')
+      .getOne();
+
+    if (!tour) {
+      throw new NotFoundException(
+        this.i18n.t('common.notFound', { args: { field: 'Tour' } }),
+      );
+    }
+
+    return new TourSerializer(tour, { type: 'PUBLIC' }).serialize();
   }
 
   async findOne(id: number) {
