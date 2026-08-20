@@ -18,5 +18,12 @@
   },
   "tour": {
     "hasBookings": "Không thể xóa tour đã có booking"
+  },
+  "booking": {
+    "scheduleUnavailable": "Lịch khởi hành này không mở để đặt tour",
+    "started": "Không thể đặt lịch khởi hành đã bắt đầu",
+    "duplicate": "Bạn đã có booking đang hoạt động cho lịch khởi hành này",
+    "insufficientCapacity": "Lịch khởi hành không còn đủ chỗ",
+    "invalidTransition": "Chỉ booking đang chờ mới có thể được duyệt hoặc từ chối"
   }
 }

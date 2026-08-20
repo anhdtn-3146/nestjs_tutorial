@@ -18,5 +18,12 @@
   },
   "tour": {
     "hasBookings": "A tour with bookings cannot be deleted"
+  },
+  "booking": {
+    "scheduleUnavailable": "This departure is not open for booking",
+    "started": "A departure that has started cannot be booked",
+    "duplicate": "You already have an active booking for this departure",
+    "insufficientCapacity": "There are not enough available slots for this departure",
+    "invalidTransition": "Only a pending booking can be approved or rejected"
   }
 }

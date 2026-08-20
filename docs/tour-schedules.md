@@ -15,6 +15,32 @@ images and all future `open` departures, ordered by start date. The client uses
 the chosen `tourTimes[].id` as the departure identifier for the next booking
 step. A Tour without any available departure is returned as not found.
 
+## Book a departure
+
+`POST /api/bookings` requires a valid access token. The body contains
+`tour_time_id` and `number_of_slots`; `user_id`, status and total price are
+always determined by the server. A booking starts as `pending`. The operation
+locks the departure while checking active reservations, preventing concurrent
+requests from exceeding `max_capacity`.
+On success, it returns `{ "success": true }`.
+
+Booking statuses are `pending`, `approved`, `rejected` and `cancelled`.
+`pending` and `approved` bookings reserve capacity; `rejected` and `cancelled`
+bookings release it.
+
+`GET /api/bookings?limit=20&offset=0` requires a valid access token and returns
+the authenticated user's paginated booking history. Each item includes the
+booking, the selected departure's ID/date range, and basic Tour information
+(`id`, `name`, category and images). The user ID always comes from the access
+token, never from a query parameter.
+
+Admins manage booking requests through
+`GET /api/admin/bookings?limit=20&offset=0&status=pending`. The status filter is
+optional and accepts any booking status. `PUT /api/admin/bookings/:id/status`
+accepts `{ "status": "approved" }` or `{ "status": "rejected" }`. Only a
+`pending` booking can make this transition; successful updates return
+`{ "success": true }`.
+
 ## Create a tour
 
 `POST /api/admin/tours` accepts `multipart/form-data`. Text fields are sent

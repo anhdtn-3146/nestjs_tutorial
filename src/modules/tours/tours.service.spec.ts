@@ -230,7 +230,7 @@ describe('ToursService', () => {
           {
             id: 2,
             categoryId: 1,
-            category: { id: 1, name: 'Beach' },
+            category: 'Beach',
             title: 'Da Nang',
             description: 'Three days',
             images: [
@@ -309,7 +309,7 @@ describe('ToursService', () => {
     await expect(service.findPublicOne(2)).resolves.toEqual({
       id: 2,
       categoryId: 1,
-      category: { id: 1, name: 'Beach' },
+      category: 'Beach',
       title: 'Da Nang',
       description: 'Three days',
       images: [{ id: 8, imageUrl: '/uploads/tours/image.jpg', sortOrder: 0 }],
