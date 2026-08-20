@@ -9,6 +9,7 @@ describe('BookingsController', () => {
   const bookingsService = {
     findAll: jest.fn(),
     create: jest.fn(),
+    cancel: jest.fn(),
     findAllForAdmin: jest.fn(),
     updateStatus: jest.fn(),
   };
@@ -19,14 +20,14 @@ describe('BookingsController', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('lists bookings for the authenticated user', async () => {
-    const request = { user: { sub: 7 } };
+    const user = { sub: 7 } as never;
     const query = { limit: 10, offset: 0 };
     bookingsService.findAll.mockResolvedValue({
       bookings: [],
       page: { total: 0, ...query },
     });
 
-    await expect(controller.findAll(request as never, query)).resolves.toEqual({
+    await expect(controller.findAll(user, query)).resolves.toEqual({
       bookings: [],
       page: { total: 0, ...query },
     });
@@ -34,11 +35,11 @@ describe('BookingsController', () => {
   });
 
   it('creates a booking for the authenticated user', async () => {
-    const request = { user: { sub: 7 } };
+    const user = { sub: 7 } as never;
     const dto = { tour_time_id: 5, number_of_slots: 2 };
     bookingsService.create.mockResolvedValue({ success: true });
 
-    await expect(controller.create(request as never, dto)).resolves.toEqual({
+    await expect(controller.create(user, dto)).resolves.toEqual({
       success: true,
     });
     expect(bookingsService.create).toHaveBeenCalledWith(7, dto);
@@ -48,6 +49,16 @@ describe('BookingsController', () => {
     expect(
       Reflect.getMetadata(IS_PUBLIC_KEY, controller.create),
     ).toBeUndefined();
+  });
+
+  it('cancels a booking for the authenticated user', async () => {
+    const user = { sub: 7 } as never;
+    bookingsService.cancel.mockResolvedValue({ success: true });
+
+    await expect(controller.cancel(user, 10)).resolves.toEqual({
+      success: true,
+    });
+    expect(bookingsService.cancel).toHaveBeenCalledWith(7, 10);
   });
 
   it('delegates admin list and status update with admin role metadata', async () => {

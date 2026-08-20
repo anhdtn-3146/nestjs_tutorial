@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
@@ -14,11 +15,13 @@ import {
 } from 'src/database/entities/tour-time.entity';
 import { DataSource, Repository } from 'typeorm';
 import { BookingsService } from './bookings.service';
+import { MailService } from 'src/modules/mail/mail.service';
 
 describe('BookingsService', () => {
   let service: BookingsService;
   let tourTime: TourTimeEntity | null;
   let bookings: jest.Mocked<Partial<Repository<BookingEntity>>>;
+  let mailService: { sendBookingDecision: jest.Mock };
   let queryBuilder: {
     setLock: jest.Mock;
     where: jest.Mock;
@@ -48,6 +51,7 @@ describe('BookingsService', () => {
       sum: jest.fn().mockResolvedValue(5),
       create: jest.fn((value) => value as BookingEntity),
       save: jest.fn(async (value) => ({ id: 10, ...value }) as BookingEntity),
+      update: jest.fn().mockResolvedValue({ affected: 1 }),
     };
     const dataSource = {
       transaction: jest.fn(async (callback) =>
@@ -57,10 +61,14 @@ describe('BookingsService', () => {
         }),
       ),
     };
+    mailService = {
+      sendBookingDecision: jest.fn().mockResolvedValue(undefined),
+    };
     service = new BookingsService(
       bookings as Repository<BookingEntity>,
       dataSource as unknown as DataSource,
       { t: jest.fn((key: string) => key) } as unknown as I18nService,
+      mailService as unknown as MailService,
     );
   });
 
@@ -227,16 +235,65 @@ describe('BookingsService', () => {
     const booking = {
       id: 10,
       status: BookingStatus.PENDING,
+      numberOfSlots: 2,
+      totalPrice: '5000000.00',
+      user: {
+        email: 'user@example.com',
+        fullName: 'Nguyen Van A',
+      },
+      tourTime: {
+        startDate: '2999-01-01',
+        endDate: '2999-01-03',
+        tour: { title: 'Da Nang' },
+      },
     } as BookingEntity;
     bookings.findOne!.mockResolvedValue(booking);
 
     await expect(
       service.updateStatus(10, { status: BookingStatus.APPROVED }),
     ).resolves.toEqual({ success: true });
-    expect(bookings.findOne).toHaveBeenCalledWith({ where: { id: 10 } });
+    expect(bookings.findOne).toHaveBeenCalledWith({
+      where: { id: 10 },
+      relations: { user: true, tourTime: { tour: true } },
+    });
     expect(bookings.save).toHaveBeenCalledWith(
       expect.objectContaining({ id: 10, status: BookingStatus.APPROVED }),
     );
+    expect(mailService.sendBookingDecision).toHaveBeenCalledWith({
+      to: 'user@example.com',
+      customerName: 'Nguyen Van A',
+      bookingId: 10,
+      tourName: 'Da Nang',
+      startDate: '2999-01-01',
+      endDate: '2999-01-03',
+      numberOfSlots: 2,
+      totalPrice: '5000000.00',
+      status: BookingStatus.APPROVED,
+    });
+  });
+
+  it('keeps the status update successful when MailHog is unavailable', async () => {
+    const booking = {
+      id: 10,
+      status: BookingStatus.PENDING,
+      numberOfSlots: 1,
+      totalPrice: '2500000.00',
+      user: { email: 'user@example.com', fullName: 'Nguyen Van A' },
+      tourTime: {
+        startDate: '2999-01-01',
+        endDate: '2999-01-03',
+        tour: { title: 'Da Nang' },
+      },
+    } as BookingEntity;
+    bookings.findOne!.mockResolvedValue(booking);
+    mailService.sendBookingDecision.mockRejectedValue(
+      new Error('connect ECONNREFUSED 127.0.0.1:1025'),
+    );
+
+    await expect(
+      service.updateStatus(10, { status: BookingStatus.REJECTED }),
+    ).resolves.toEqual({ success: true });
+    expect(bookings.save).toHaveBeenCalled();
   });
 
   it('rejects an admin decision for a non-pending booking', async () => {
@@ -249,6 +306,69 @@ describe('BookingsService', () => {
     await expect(
       service.updateStatus(10, { status: BookingStatus.REJECTED }),
     ).rejects.toThrow(ConflictException);
+  });
+
+  it('returns an internal server error when updating status unexpectedly fails', async () => {
+    bookings.findOne!.mockRejectedValue(new Error('database unavailable'));
+
+    const result = service.updateStatus(10, {
+      status: BookingStatus.APPROVED,
+    });
+
+    await expect(result).rejects.toBeInstanceOf(InternalServerErrorException);
+    await expect(result).rejects.toMatchObject({
+      response: {
+        message: 'common.internalServerError',
+        statusCode: 500,
+      },
+    });
+  });
+
+  it('allows the owner to cancel a pending booking', async () => {
+    bookings.findOne!.mockResolvedValue({
+      id: 10,
+      userId: 7,
+      status: BookingStatus.PENDING,
+    } as BookingEntity);
+
+    await expect(service.cancel(7, 10)).resolves.toEqual({ success: true });
+    expect(bookings.findOne).toHaveBeenCalledWith({
+      where: { id: 10, userId: 7 },
+      select: { id: true, status: true },
+    });
+    expect(bookings.update).toHaveBeenCalledWith(
+      { id: 10, userId: 7, status: BookingStatus.PENDING },
+      { status: BookingStatus.CANCELLED },
+    );
+  });
+
+  it('does not reveal a booking that does not belong to the user', async () => {
+    bookings.findOne!.mockResolvedValue(null);
+
+    await expect(service.cancel(7, 10)).rejects.toThrow(NotFoundException);
+    expect(bookings.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects cancellation after the admin has confirmed the booking', async () => {
+    bookings.findOne!.mockResolvedValue({
+      id: 10,
+      userId: 7,
+      status: BookingStatus.APPROVED,
+    } as BookingEntity);
+
+    await expect(service.cancel(7, 10)).rejects.toThrow(ConflictException);
+    expect(bookings.update).not.toHaveBeenCalled();
+  });
+
+  it('does not overwrite an admin decision made during cancellation', async () => {
+    bookings.findOne!.mockResolvedValue({
+      id: 10,
+      userId: 7,
+      status: BookingStatus.PENDING,
+    } as BookingEntity);
+    bookings.update!.mockResolvedValue({ affected: 0 } as never);
+
+    await expect(service.cancel(7, 10)).rejects.toThrow(ConflictException);
   });
 
   it('creates a pending booking and calculates its price on the server', async () => {

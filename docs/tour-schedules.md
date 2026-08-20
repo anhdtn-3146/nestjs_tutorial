@@ -34,12 +34,21 @@ booking, the selected departure's ID/date range, and basic Tour information
 (`id`, `name`, category and images). The user ID always comes from the access
 token, never from a query parameter.
 
+`PUT /api/bookings/:id/cancel` allows the authenticated user to cancel their
+own booking while it is still `pending`. A booking that has already been
+approved, rejected or cancelled cannot be cancelled by the user. Successful
+cancellation returns `{ "success": true }`.
+
 Admins manage booking requests through
 `GET /api/admin/bookings?limit=20&offset=0&status=pending`. The status filter is
 optional and accepts any booking status. `PUT /api/admin/bookings/:id/status`
 accepts `{ "status": "approved" }` or `{ "status": "rejected" }`. Only a
 `pending` booking can make this transition; successful updates return
 `{ "success": true }`.
+
+After an approve/reject update is saved, the application sends a notification
+email through MailHog SMTP (`127.0.0.1:1025` by default). MailHog's local inbox
+is available at `http://localhost:8025`.
 
 ## Create a tour
 

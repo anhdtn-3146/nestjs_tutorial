@@ -3,11 +3,14 @@ import {
   ConflictException,
   HttpException,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
 import { DEFAULT_LIMIT, DEFAULT_OFFSET } from 'src/common/constants';
+import { today } from 'src/common/utils/date.util';
 import {
   BookingEntity,
   BookingStatus,
@@ -22,16 +25,20 @@ import { ListBookingDto } from './dto/list-booking.dto';
 import { AdminListBookingDto } from './dto/admin-list-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { BookingSerializer } from './serializers/booking.serializer';
+import { MailService } from 'src/modules/mail/mail.service';
 
 const ACTIVE_BOOKING_STATUSES = [BookingStatus.PENDING, BookingStatus.APPROVED];
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(
     @InjectRepository(BookingEntity)
     private readonly bookingRepository: Repository<BookingEntity>,
     private readonly dataSource: DataSource,
     private readonly i18n: I18nService,
+    private readonly mailService: MailService,
   ) {}
 
   async findAll(userId: number, queryParams: ListBookingDto) {
@@ -88,7 +95,10 @@ export class BookingsService {
 
   async updateStatus(id: number, dto: UpdateBookingStatusDto) {
     try {
-      const booking = await this.bookingRepository.findOne({ where: { id } });
+      const booking = await this.bookingRepository.findOne({
+        where: { id },
+        relations: { user: true, tourTime: { tour: true } },
+      });
 
       if (!booking) {
         throw new NotFoundException(
@@ -104,10 +114,80 @@ export class BookingsService {
       booking.status = dto.status;
       await this.bookingRepository.save(booking);
 
+      try {
+        await this.mailService.sendBookingDecision({
+          to: booking.user.email,
+          customerName: booking.user.fullName,
+          bookingId: booking.id,
+          tourName: booking.tourTime.tour.title,
+          startDate: booking.tourTime.startDate,
+          endDate: booking.tourTime.endDate,
+          numberOfSlots: booking.numberOfSlots,
+          totalPrice: booking.totalPrice,
+          status: dto.status,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `Failed to send booking ${booking.id} email: ${message}`,
+        );
+      }
+
       return { success: true };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new BadRequestException(this.i18n.t('common.invalid'));
+
+      this.logger.error(
+        'Failed to update booking status',
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      throw new InternalServerErrorException(
+        this.i18n.t('common.internalServerError'),
+      );
+    }
+  }
+
+  async cancel(userId: number, id: number) {
+    try {
+      const booking = await this.bookingRepository.findOne({
+        where: { id, userId },
+        select: { id: true, status: true },
+      });
+
+      if (!booking) {
+        throw new NotFoundException(
+          this.i18n.t('common.notFound', { args: { field: 'Booking' } }),
+        );
+      }
+      if (booking.status !== BookingStatus.PENDING) {
+        throw new ConflictException(
+          this.i18n.t('common.booking.cancellationNotAllowed'),
+        );
+      }
+
+      const result = await this.bookingRepository.update(
+        { id, userId, status: BookingStatus.PENDING },
+        { status: BookingStatus.CANCELLED },
+      );
+      if (!result.affected) {
+        throw new ConflictException(
+          this.i18n.t('common.booking.cancellationNotAllowed'),
+        );
+      }
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      this.logger.error(
+        'Failed to cancel booking',
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      throw new InternalServerErrorException(
+        this.i18n.t('common.internalServerError'),
+      );
     }
   }
 
@@ -134,7 +214,7 @@ export class BookingsService {
             this.i18n.t('common.booking.scheduleUnavailable'),
           );
         }
-        if (tourTime.startDate <= new Date().toISOString().slice(0, 10)) {
+        if (tourTime.startDate <= today()) {
           throw new ConflictException(this.i18n.t('common.booking.started'));
         }
 

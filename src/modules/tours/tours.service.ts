@@ -15,6 +15,7 @@ import {
   DEFAULT_OFFSET,
   TOUR_IMAGE_EXTENSIONS,
 } from 'src/common/constants';
+import { today } from 'src/common/utils/date.util';
 import { BookingEntity } from 'src/database/entities/booking.entity';
 import { CategoryEntity } from 'src/database/entities/category.entity';
 import { TourImageEntity } from 'src/database/entities/tour-image.entity';
@@ -92,7 +93,7 @@ export class ToursService {
   }
 
   private createPublicTourQuery() {
-    const today = new Date().toISOString().slice(0, 10);
+    const currentDate = today();
 
     return this.tourRepository
       .createQueryBuilder('tour')
@@ -101,7 +102,7 @@ export class ToursService {
         'tour.tourTimes',
         'tourTime',
         'tourTime.status = :status AND tourTime.startDate > :today',
-        { status: TourTimeStatus.OPEN, today },
+        { status: TourTimeStatus.OPEN, today: currentDate },
       )
       .leftJoinAndSelect('tour.images', 'image');
   }
@@ -542,7 +543,7 @@ export class ToursService {
   }
 
   private hasStarted(tourTime: TourTimeEntity): boolean {
-    return tourTime.startDate <= new Date().toISOString().slice(0, 10);
+    return tourTime.startDate <= today();
   }
 
   async delete(id: number) {

@@ -5,8 +5,9 @@ import {
   Param,
   ParseIntPipe,
   Put,
-  Req,
 } from '@nestjs/common';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { AccessTokenPayload } from 'src/modules/auth/auth.types';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -15,13 +16,16 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('user')
-  async getCurrentUser(@Req() req) {
-    return await this.usersService.findById(req.user.sub);
+  async getCurrentUser(@CurrentUser() user: AccessTokenPayload) {
+    return await this.usersService.findById(user.sub);
   }
 
   @Put('user')
-  async updateUser(@Body() updateUserDto: UpdateUserDto, @Req() req) {
-    return this.usersService.update(req.user.sub, updateUserDto);
+  async updateUser(
+    @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() user: AccessTokenPayload,
+  ) {
+    return this.usersService.update(user.sub, updateUserDto);
   }
 
   @Get('profiles/:id')
