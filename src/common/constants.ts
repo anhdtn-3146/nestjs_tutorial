@@ -1,5 +1,6 @@
 export const DEFAULT_OFFSET = 0;
 export const DEFAULT_LIMIT = 20;
+export const TIME_ZONE = 'Asia/Bangkok';
 
 export const MAX_TOUR_IMAGES = 5;
 export const MAX_TOUR_IMAGE_SIZE = 5 * 1024 * 1024;

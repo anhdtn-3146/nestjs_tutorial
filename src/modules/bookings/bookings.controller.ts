@@ -7,21 +7,18 @@ import {
   Post,
   Put,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { UserRole } from 'src/database/entities/user.entity';
-import { AccessTokenPayload } from 'src/modules/auth/auth.types';
+import type { AccessTokenPayload } from 'src/modules/auth/auth.types';
 import { BookingsService } from './bookings.service';
 import { AdminListBookingDto } from './dto/admin-list-booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { ListBookingDto } from './dto/list-booking.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
-
-type AuthenticatedRequest = Request & { user: AccessTokenPayload };
 
 @Controller()
 @UseGuards(RolesGuard)
@@ -30,15 +27,26 @@ export class BookingsController {
 
   @Get('bookings')
   findAll(
-    @Req() request: AuthenticatedRequest,
+    @CurrentUser() user: AccessTokenPayload,
     @Query() query: ListBookingDto,
   ) {
-    return this.bookingsService.findAll(request.user.sub, query);
+    return this.bookingsService.findAll(user.sub, query);
   }
 
   @Post('bookings')
-  create(@Req() request: AuthenticatedRequest, @Body() dto: CreateBookingDto) {
-    return this.bookingsService.create(request.user.sub, dto);
+  create(
+    @CurrentUser() user: AccessTokenPayload,
+    @Body() dto: CreateBookingDto,
+  ) {
+    return this.bookingsService.create(user.sub, dto);
+  }
+
+  @Put('bookings/:id/cancel')
+  cancel(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.bookingsService.cancel(user.sub, id);
   }
 
   @Roles(UserRole.ADMIN)

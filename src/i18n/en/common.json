@@ -8,6 +8,7 @@
   },
   "notFound": "{field} not found",
   "invalid": "Something went wrong, please try again later",
+  "internalServerError": "An internal server error occurred, please try again later",
   "tourTime": {
     "invalidRange": "The end date must not be before the start date",
     "overlap": "This schedule overlaps another active schedule of the tour",
@@ -24,6 +25,7 @@
     "started": "A departure that has started cannot be booked",
     "duplicate": "You already have an active booking for this departure",
     "insufficientCapacity": "There are not enough available slots for this departure",
-    "invalidTransition": "Only a pending booking can be approved or rejected"
+    "invalidTransition": "Only a pending booking can be approved or rejected",
+    "cancellationNotAllowed": "Only a pending booking can be cancelled"
   }
 }

@@ -39,20 +39,20 @@ describe('UsersController', () => {
         email: 'test@example.com',
         username: 'testuser',
       };
-      const mockReq = { user: { sub: mockUser.id } };
+      const currentUser = { sub: mockUser.id } as never;
       mockUsersService.findById.mockResolvedValue(mockUser);
-      const result = await controller.getCurrentUser(mockReq);
+      const result = await controller.getCurrentUser(currentUser);
       expect(mockUsersService.findById).toHaveBeenCalledWith(mockUser.id);
       expect(result).toEqual(mockUser);
     });
 
     it('should propagate NotFoundException if user is not found', async () => {
-      const mockReq = { user: { sub: 999 } };
+      const currentUser = { sub: 999 } as never;
       mockUsersService.findById.mockRejectedValue(
         new NotFoundException('User not found'),
       );
 
-      await expect(controller.getCurrentUser(mockReq)).rejects.toThrow(
+      await expect(controller.getCurrentUser(currentUser)).rejects.toThrow(
         NotFoundException,
       );
       expect(mockUsersService.findById).toHaveBeenCalledWith(999);

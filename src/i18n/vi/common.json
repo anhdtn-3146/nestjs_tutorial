@@ -8,6 +8,7 @@
   },
   "notFound": "{field} không tìm thấy",
   "invalid": "Có gì đó không đúng, vui lòng thử lại sau",
+  "internalServerError": "Đã xảy ra lỗi hệ thống, vui lòng thử lại sau",
   "tourTime": {
     "invalidRange": "Ngày kết thúc không được trước ngày bắt đầu",
     "overlap": "Lịch này trùng với một lịch đang hoạt động của tour",
@@ -24,6 +25,7 @@
     "started": "Không thể đặt lịch khởi hành đã bắt đầu",
     "duplicate": "Bạn đã có booking đang hoạt động cho lịch khởi hành này",
     "insufficientCapacity": "Lịch khởi hành không còn đủ chỗ",
-    "invalidTransition": "Chỉ booking đang chờ mới có thể được duyệt hoặc từ chối"
+    "invalidTransition": "Chỉ booking đang chờ mới có thể được duyệt hoặc từ chối",
+    "cancellationNotAllowed": "Chỉ có thể hủy booking đang chờ xác nhận"
   }
 }

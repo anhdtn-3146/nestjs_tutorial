@@ -1,0 +1,18 @@
+{
+  "bookingDecision": {
+    "approved": {
+      "subject": "[Tour Booking] Booking request #{bookingId} has been approved",
+      "message": "Your booking request #{bookingId} has been approved."
+    },
+    "rejected": {
+      "subject": "[Tour Booking] Booking request #{bookingId} has been rejected",
+      "message": "Your booking request #{bookingId} has been rejected."
+    },
+    "greeting": "Hello {customerName},",
+    "tour": "Tour: {tourName}",
+    "travelDates": "Travel dates: {startDate} - {endDate}",
+    "numberOfSlots": "Number of slots: {numberOfSlots}",
+    "totalPrice": "Total price: {totalPrice}",
+    "thankYou": "Thank you for using our service."
+  }
+}

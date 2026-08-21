@@ -1,18 +1,11 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Req,
-} from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { Public } from './public.decorator';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { AccessTokenPayload } from './auth.types';
+import type { AccessTokenPayload } from './auth.types';
 
 @Controller('auth')
 export class AuthController {
@@ -34,8 +27,8 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  logout(@Req() request: Request & { user: AccessTokenPayload }) {
-    return this.authService.logout(request.user);
+  logout(@CurrentUser() user: AccessTokenPayload) {
+    return this.authService.logout(user);
   }
 
   @Public()

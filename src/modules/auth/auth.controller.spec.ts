@@ -132,13 +132,13 @@ describe('AuthController', () => {
 
   describe('logout', () => {
     it('should logout the current session', async () => {
-      const request = { user: { sub: 1, sid: 2, jti: 'jti' } } as never;
+      const user = { sub: 1, sid: 2, jti: 'jti' } as never;
       mockAuthService.logout.mockResolvedValue({ success: true });
 
-      await expect(controller.logout(request)).resolves.toEqual({
+      await expect(controller.logout(user)).resolves.toEqual({
         success: true,
       });
-      expect(mockAuthService.logout).toHaveBeenCalledWith(request.user);
+      expect(mockAuthService.logout).toHaveBeenCalledWith(user);
     });
   });
 });

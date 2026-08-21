@@ -1,0 +1,18 @@
+{
+  "bookingDecision": {
+    "approved": {
+      "subject": "[Đặt tour] Yêu cầu đặt tour #{bookingId} đã được duyệt",
+      "message": "Yêu cầu đặt tour #{bookingId} của bạn đã được duyệt."
+    },
+    "rejected": {
+      "subject": "[Đặt tour] Yêu cầu đặt tour #{bookingId} đã bị từ chối",
+      "message": "Yêu cầu đặt tour #{bookingId} của bạn đã bị từ chối."
+    },
+    "greeting": "Xin chào {customerName},",
+    "tour": "Tour: {tourName}",
+    "travelDates": "Ngày khởi hành: {startDate} - {endDate}",
+    "numberOfSlots": "Số lượng chỗ: {numberOfSlots}",
+    "totalPrice": "Tổng tiền: {totalPrice}",
+    "thankYou": "Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi."
+  }
+}
