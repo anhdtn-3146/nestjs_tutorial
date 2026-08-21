@@ -18,7 +18,8 @@
     "invalidEditSet": "The submitted schedule list contains duplicate, foreign or conflicting schedule IDs"
   },
   "tour": {
-    "hasBookings": "A tour with bookings cannot be deleted"
+    "hasBookings": "A tour with bookings cannot be deleted",
+    "invalidPriceRange": "Minimum price must not be greater than maximum price"
   },
   "booking": {
     "scheduleUnavailable": "This departure is not open for booking",
@@ -27,5 +28,8 @@
     "insufficientCapacity": "There are not enough available slots for this departure",
     "invalidTransition": "Only a pending booking can be approved or rejected",
     "cancellationNotAllowed": "Only a pending booking can be cancelled"
+  },
+  "review": {
+    "notCompleted": "You can only review a tour after completing it"
   }
 }

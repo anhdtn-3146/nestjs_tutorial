@@ -18,6 +18,7 @@ import {
 import { today } from 'src/common/utils/date.util';
 import { BookingEntity } from 'src/database/entities/booking.entity';
 import { CategoryEntity } from 'src/database/entities/category.entity';
+import { ReviewEntity } from 'src/database/entities/review.entity';
 import { TourImageEntity } from 'src/database/entities/tour-image.entity';
 import {
   TourTimeEntity,
@@ -29,6 +30,7 @@ import { CreateTourTimeDto } from './dto/create-tour-time.dto';
 import { CreateTourDto } from './dto/create-tour.dto';
 import { EditTourTimeDto } from './dto/edit-tour-time.dto';
 import { ListTourDto } from './dto/list-tour.dto';
+import { SearchTourDto, SortOrder, TourSortBy } from './dto/search-tour.dto';
 import { UpdateTourDto } from './dto/update-tour.dto';
 import { TourSerializer } from './serializers/tour.serializer';
 import { TourImageUpload } from './tour-upload.config';
@@ -107,11 +109,74 @@ export class ToursService {
       .leftJoinAndSelect('tour.images', 'image');
   }
 
-  async findPublic(queryParams: ListTourDto) {
+  async findPublic(queryParams: SearchTourDto) {
     const limit = queryParams.limit ?? DEFAULT_LIMIT;
     const offset = queryParams.offset ?? DEFAULT_OFFSET;
-    const query = this.createPublicTourQuery()
-      .orderBy('tour.id', 'DESC')
+    if (
+      queryParams.min_price !== undefined &&
+      queryParams.max_price !== undefined &&
+      queryParams.min_price > queryParams.max_price
+    ) {
+      throw new BadRequestException(
+        this.i18n.t('common.tour.invalidPriceRange'),
+      );
+    }
+
+    const query = this.createPublicTourQuery();
+    if (queryParams.category_id !== undefined) {
+      query.andWhere('tour.categoryId = :categoryId', {
+        categoryId: queryParams.category_id,
+      });
+    }
+    if (queryParams.name !== undefined) {
+      query.andWhere('tour.title ILIKE :name', {
+        name: `%${queryParams.name.trim()}%`,
+      });
+    }
+    if (queryParams.min_price !== undefined) {
+      query.andWhere('tourTime.price >= :minPrice', {
+        minPrice: queryParams.min_price,
+      });
+    }
+    if (queryParams.max_price !== undefined) {
+      query.andWhere('tourTime.price <= :maxPrice', {
+        maxPrice: queryParams.max_price,
+      });
+    }
+
+    if (queryParams.sort_by === TourSortBy.RATING) {
+      query.addSelect(
+        (subQuery) =>
+          subQuery
+            .select('COALESCE(AVG(review.rating), 0)')
+            .from(ReviewEntity, 'review')
+            .where('review.tourId = tour.id'),
+        'average_rating',
+      );
+    }
+
+    const defaultSortOrder =
+      queryParams.sort_by === TourSortBy.RATING ? 'DESC' : 'ASC';
+    const sortOrder =
+      queryParams.sort_order === SortOrder.DESC
+        ? 'DESC'
+        : queryParams.sort_order === SortOrder.ASC
+          ? 'ASC'
+          : defaultSortOrder;
+    const sortColumns: Record<TourSortBy, string> = {
+      [TourSortBy.PRICE]: 'tourTime.price',
+      [TourSortBy.START_DATE]: 'tourTime.startDate',
+      [TourSortBy.NAME]: 'tour.title',
+      [TourSortBy.RATING]: 'average_rating',
+    };
+    if (queryParams.sort_by) {
+      query
+        .orderBy(sortColumns[queryParams.sort_by], sortOrder)
+        .addOrderBy('tour.id', 'DESC');
+    } else {
+      query.orderBy('tour.id', 'DESC');
+    }
+    query
       .addOrderBy('tourTime.startDate', 'ASC')
       .addOrderBy('image.sortOrder', 'ASC')
       .skip(offset)

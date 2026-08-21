@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { AuthSessionEntity } from './auth-session.entity';
 import { BookingEntity } from './booking.entity';
+import { ReviewEntity } from './review.entity';
 
 export enum UserRole {
   USER = 'user',
@@ -53,6 +54,9 @@ export class UserEntity {
 
   @OneToMany(() => BookingEntity, (booking) => booking.user)
   bookings: BookingEntity[];
+
+  @OneToMany(() => ReviewEntity, (review) => review.user)
+  reviews: ReviewEntity[];
 
   // Backward-compatible view fields for modules that still read legacy user shape.
   get username(): string {
