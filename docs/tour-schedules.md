@@ -46,9 +46,15 @@ accepts `{ "status": "approved" }` or `{ "status": "rejected" }`. Only a
 `pending` booking can make this transition; successful updates return
 `{ "success": true }`.
 
-After an approve/reject update is saved, the application sends a notification
-email through MailHog SMTP (`127.0.0.1:1025` by default). MailHog's local inbox
-is available at `http://localhost:8025`.
+After an approve/reject update is saved, the application adds a notification
+job to the Bull mail queue in Redis and returns without waiting for SMTP. The
+mail processor loads the latest booking data and sends through MailHog SMTP
+(`127.0.0.1:1025` by default). Failed SMTP jobs retry three times with
+exponential backoff. MailHog's local inbox is available at
+`http://localhost:8025`.
+Email layout is defined in `src/modules/mail/templates`, while translated
+content is stored in `src/i18n/{lang}/mail.json`. `MAIL_LANGUAGE` selects the
+default recipient language and defaults to `en`.
 
 ## Create a tour
 

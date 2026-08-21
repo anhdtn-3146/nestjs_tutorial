@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   InternalServerErrorException,
   NotFoundException,
@@ -15,13 +14,13 @@ import {
 } from 'src/database/entities/tour-time.entity';
 import { DataSource, Repository } from 'typeorm';
 import { BookingsService } from './bookings.service';
-import { MailService } from 'src/modules/mail/mail.service';
+import { MailQueueService } from 'src/modules/mail/mail-queue.service';
 
 describe('BookingsService', () => {
   let service: BookingsService;
   let tourTime: TourTimeEntity | null;
   let bookings: jest.Mocked<Partial<Repository<BookingEntity>>>;
-  let mailService: { sendBookingDecision: jest.Mock };
+  let mailQueueService: { enqueueBookingDecision: jest.Mock };
   let queryBuilder: {
     setLock: jest.Mock;
     where: jest.Mock;
@@ -61,14 +60,14 @@ describe('BookingsService', () => {
         }),
       ),
     };
-    mailService = {
-      sendBookingDecision: jest.fn().mockResolvedValue(undefined),
+    mailQueueService = {
+      enqueueBookingDecision: jest.fn().mockResolvedValue(undefined),
     };
     service = new BookingsService(
       bookings as Repository<BookingEntity>,
       dataSource as unknown as DataSource,
       { t: jest.fn((key: string) => key) } as unknown as I18nService,
-      mailService as unknown as MailService,
+      mailQueueService as unknown as MailQueueService,
     );
   });
 
@@ -254,25 +253,17 @@ describe('BookingsService', () => {
     ).resolves.toEqual({ success: true });
     expect(bookings.findOne).toHaveBeenCalledWith({
       where: { id: 10 },
-      relations: { user: true, tourTime: { tour: true } },
     });
     expect(bookings.save).toHaveBeenCalledWith(
       expect.objectContaining({ id: 10, status: BookingStatus.APPROVED }),
     );
-    expect(mailService.sendBookingDecision).toHaveBeenCalledWith({
-      to: 'user@example.com',
-      customerName: 'Nguyen Van A',
-      bookingId: 10,
-      tourName: 'Da Nang',
-      startDate: '2999-01-01',
-      endDate: '2999-01-03',
-      numberOfSlots: 2,
-      totalPrice: '5000000.00',
-      status: BookingStatus.APPROVED,
-    });
+    expect(mailQueueService.enqueueBookingDecision).toHaveBeenCalledWith(
+      10,
+      BookingStatus.APPROVED,
+    );
   });
 
-  it('keeps the status update successful when MailHog is unavailable', async () => {
+  it('returns a server error when the mail job cannot be enqueued', async () => {
     const booking = {
       id: 10,
       status: BookingStatus.PENDING,
@@ -286,13 +277,13 @@ describe('BookingsService', () => {
       },
     } as BookingEntity;
     bookings.findOne!.mockResolvedValue(booking);
-    mailService.sendBookingDecision.mockRejectedValue(
-      new Error('connect ECONNREFUSED 127.0.0.1:1025'),
+    mailQueueService.enqueueBookingDecision.mockRejectedValue(
+      new Error('Redis unavailable'),
     );
 
     await expect(
       service.updateStatus(10, { status: BookingStatus.REJECTED }),
-    ).resolves.toEqual({ success: true });
+    ).rejects.toThrow(InternalServerErrorException);
     expect(bookings.save).toHaveBeenCalled();
   });
 
@@ -432,17 +423,34 @@ describe('BookingsService', () => {
     ).rejects.toThrow(ConflictException);
   });
 
-  it('converts an unexpected persistence error to a bad request', async () => {
+  it('logs and converts an unexpected persistence error to a server error', async () => {
     bookings.save!.mockRejectedValue(new Error('database unavailable'));
+    const loggerError = jest
+      .spyOn(
+        (
+          service as unknown as {
+            logger: { error: (message: string, trace: string) => void };
+          }
+        ).logger,
+        'error',
+      )
+      .mockImplementation();
 
     const result = service.create(7, {
       tour_time_id: 5,
       number_of_slots: 1,
     });
 
-    await expect(result).rejects.toBeInstanceOf(BadRequestException);
+    await expect(result).rejects.toBeInstanceOf(InternalServerErrorException);
     await expect(result).rejects.toMatchObject({
-      response: { message: 'common.invalid', statusCode: 400 },
+      response: {
+        message: 'common.internalServerError',
+        statusCode: 500,
+      },
     });
+    expect(loggerError).toHaveBeenCalledWith(
+      'Failed to create booking',
+      expect.stringContaining('database unavailable'),
+    );
   });
 });

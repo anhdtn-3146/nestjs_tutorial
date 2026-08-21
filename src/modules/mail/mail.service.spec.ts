@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { I18nService } from 'nestjs-i18n';
 import * as nodemailer from 'nodemailer';
 import { BookingStatus } from 'src/database/entities/booking.entity';
 import { MailService } from './mail.service';
@@ -7,6 +8,31 @@ jest.mock('nodemailer', () => ({ createTransport: jest.fn() }));
 
 describe('MailService', () => {
   const sendMail = jest.fn();
+  const translations: Record<string, string> = {
+    'mail.bookingDecision.approved.subject':
+      '[Tour Booking] Booking request #{bookingId} has been approved',
+    'mail.bookingDecision.approved.message':
+      'Your booking request #{bookingId} has been approved.',
+    'mail.bookingDecision.rejected.subject':
+      '[Tour Booking] Booking request #{bookingId} has been rejected',
+    'mail.bookingDecision.rejected.message':
+      'Your booking request #{bookingId} has been rejected.',
+    'mail.bookingDecision.greeting': 'Hello {customerName},',
+    'mail.bookingDecision.tour': 'Tour: {tourName}',
+    'mail.bookingDecision.travelDates': 'Travel dates: {startDate} - {endDate}',
+    'mail.bookingDecision.numberOfSlots': 'Number of slots: {numberOfSlots}',
+    'mail.bookingDecision.totalPrice': 'Total price: {totalPrice}',
+    'mail.bookingDecision.thankYou': 'Thank you for using our service.',
+  };
+
+  const createI18n = () => ({
+    t: jest.fn((key: string, options?: { args?: Record<string, unknown> }) =>
+      Object.entries(options?.args ?? {}).reduce(
+        (message, [name, value]) => message.replace(`{${name}}`, String(value)),
+        translations[key] ?? key,
+      ),
+    ),
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -30,7 +56,11 @@ describe('MailService', () => {
             })[key],
         ),
       };
-      const service = new MailService(config as unknown as ConfigService);
+      const i18n = createI18n();
+      const service = new MailService(
+        config as unknown as ConfigService,
+        i18n as unknown as I18nService,
+      );
 
       await service.sendBookingDecision({
         to: 'user@example.com',
@@ -59,6 +89,37 @@ describe('MailService', () => {
           text: expect.stringContaining('Tour: Da Nang'),
         }),
       );
+      expect(i18n.t).toHaveBeenCalledWith(
+        expect.stringContaining(`bookingDecision.${status}`),
+        expect.objectContaining({ lang: 'en' }),
+      );
     },
   );
+
+  it('uses the recipient language when one is provided', async () => {
+    const config = { get: jest.fn(() => undefined) };
+    const i18n = createI18n();
+    const service = new MailService(
+      config as unknown as ConfigService,
+      i18n as unknown as I18nService,
+    );
+
+    await service.sendBookingDecision({
+      to: 'user@example.com',
+      customerName: 'Nguyen Van A',
+      bookingId: 10,
+      tourName: 'Da Nang',
+      startDate: '2999-01-01',
+      endDate: '2999-01-03',
+      numberOfSlots: 2,
+      totalPrice: '5000000.00',
+      status: BookingStatus.APPROVED,
+      language: 'vi',
+    });
+
+    expect(i18n.t).toHaveBeenCalledWith(expect.any(String), {
+      lang: 'vi',
+      args: expect.anything(),
+    });
+  });
 });

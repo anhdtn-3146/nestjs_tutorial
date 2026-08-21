@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { I18nService } from 'nestjs-i18n';
 import * as nodemailer from 'nodemailer';
 import { BookingStatus } from 'src/database/entities/booking.entity';
+import { bookingDecisionTemplate } from './templates/booking-decision.template';
 
 export interface BookingDecisionMail {
   to: string;
@@ -13,14 +15,19 @@ export interface BookingDecisionMail {
   numberOfSlots: number;
   totalPrice: string;
   status: BookingStatus.APPROVED | BookingStatus.REJECTED;
+  language?: string;
 }
 
 @Injectable()
 export class MailService {
   private readonly transporter: nodemailer.Transporter;
   private readonly from: string;
+  private readonly defaultLanguage: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly i18n: I18nService,
+  ) {
     const user = this.configService.get<string>('MAIL_USER');
     const password = this.configService.get<string>('MAIL_PASSWORD');
 
@@ -36,29 +43,21 @@ export class MailService {
     this.from =
       this.configService.get<string>('MAIL_FROM') ??
       'Tour Booking <no-reply@tour.local>';
+    this.defaultLanguage =
+      this.configService.get<string>('MAIL_LANGUAGE') ?? 'en';
   }
 
   async sendBookingDecision(mail: BookingDecisionMail): Promise<void> {
-    const decision =
-      mail.status === BookingStatus.APPROVED
-        ? 'has been approved'
-        : 'has been rejected';
+    const template = bookingDecisionTemplate(
+      this.i18n,
+      mail.language ?? this.defaultLanguage,
+      mail,
+    );
 
     await this.transporter.sendMail({
       from: this.from,
       to: mail.to,
-      subject: `[Tour Booking] Booking request #${mail.bookingId} ${decision}`,
-      text: [
-        `Hello ${mail.customerName},`,
-        '',
-        `Your booking request #${mail.bookingId} ${decision}.`,
-        `Tour: ${mail.tourName}`,
-        `Travel dates: ${mail.startDate} - ${mail.endDate}`,
-        `Number of slots: ${mail.numberOfSlots}`,
-        `Total price: ${mail.totalPrice}`,
-        '',
-        'Thank you for using our service.',
-      ].join('\n'),
+      ...template,
     });
   }
 }
