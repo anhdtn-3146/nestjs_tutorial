@@ -14,6 +14,7 @@ import {
 } from 'src/database/entities/tour-time.entity';
 import { TourEntity } from 'src/database/entities/tour.entity';
 import { DataSource, Repository } from 'typeorm';
+import { SortOrder, TourSortBy } from './dto/search-tour.dto';
 import { ToursService } from './tours.service';
 
 describe('ToursService', () => {
@@ -265,6 +266,78 @@ describe('ToursService', () => {
         today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
       },
     );
+  });
+
+  it('filters and sorts public tours using whitelisted query options', async () => {
+    const queryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+    };
+    tours.createQueryBuilder!.mockReturnValue(queryBuilder as never);
+
+    await service.findPublic({
+      category_id: 2,
+      name: 'Da Nang',
+      min_price: 1000000,
+      max_price: 3000000,
+      sort_by: TourSortBy.PRICE,
+      sort_order: SortOrder.DESC,
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'tour.categoryId = :categoryId',
+      { categoryId: 2 },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'tour.title ILIKE :name',
+      { name: '%Da Nang%' },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'tourTime.price >= :minPrice',
+      { minPrice: 1000000 },
+    );
+    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+      'tourTime.price <= :maxPrice',
+      { maxPrice: 3000000 },
+    );
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith('tourTime.price', 'DESC');
+  });
+
+  it('rejects an invalid public tour price range', async () => {
+    await expect(
+      service.findPublic({ min_price: 300, max_price: 100 }),
+    ).rejects.toThrow(BadRequestException);
+    expect(tours.createQueryBuilder).not.toHaveBeenCalled();
+  });
+
+  it('sorts tours with the highest average rating first by default', async () => {
+    const queryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+    };
+    tours.createQueryBuilder!.mockReturnValue(queryBuilder as never);
+
+    await service.findPublic({ sort_by: TourSortBy.RATING });
+
+    expect(queryBuilder.addSelect).toHaveBeenCalledWith(
+      expect.any(Function),
+      'average_rating',
+    );
+    expect(queryBuilder.orderBy).toHaveBeenCalledWith('average_rating', 'DESC');
   });
 
   it('returns public tour detail with selectable future open times', async () => {

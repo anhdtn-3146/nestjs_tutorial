@@ -18,7 +18,8 @@
     "invalidEditSet": "Danh sách lịch chứa ID trùng, không thuộc tour hoặc vừa cập nhật vừa xóa"
   },
   "tour": {
-    "hasBookings": "Không thể xóa tour đã có booking"
+    "hasBookings": "Không thể xóa tour đã có booking",
+    "invalidPriceRange": "Giá tối thiểu không được lớn hơn giá tối đa"
   },
   "booking": {
     "scheduleUnavailable": "Lịch khởi hành này không mở để đặt tour",
@@ -27,5 +28,8 @@
     "insufficientCapacity": "Lịch khởi hành không còn đủ chỗ",
     "invalidTransition": "Chỉ booking đang chờ mới có thể được duyệt hoặc từ chối",
     "cancellationNotAllowed": "Chỉ có thể hủy booking đang chờ xác nhận"
+  },
+  "review": {
+    "notCompleted": "Bạn chỉ có thể đánh giá tour sau khi đã hoàn thành"
   }
 }

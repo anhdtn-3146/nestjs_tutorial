@@ -20,6 +20,7 @@ import { UserRole } from 'src/database/entities/user.entity';
 import { Public } from 'src/modules/auth/public.decorator';
 import { CreateTourDto } from './dto/create-tour.dto';
 import { ListTourDto } from './dto/list-tour.dto';
+import { SearchTourDto } from './dto/search-tour.dto';
 import { UpdateTourDto } from './dto/update-tour.dto';
 import { ToursService } from './tours.service';
 import { TourImageUpload, tourImageUploadOptions } from './tour-upload.config';
@@ -31,7 +32,7 @@ export class ToursController {
 
   @Public()
   @Get('tours')
-  findPublic(@Query() query: ListTourDto) {
+  findPublic(@Query() query: SearchTourDto) {
     return this.toursService.findPublic(query);
   }
 

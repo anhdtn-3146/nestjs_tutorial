@@ -11,6 +11,7 @@ import * as path from 'path';
 import { RedisModule } from './modules/redis/redis.module';
 import { ToursModule } from './modules/tours/tours.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
     UsersModule,
     ToursModule,
     BookingsModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

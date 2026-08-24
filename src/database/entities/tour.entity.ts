@@ -12,6 +12,7 @@ import {
 import { CategoryEntity } from './category.entity';
 import { TourImageEntity } from './tour-image.entity';
 import { TourTimeEntity } from './tour-time.entity';
+import { ReviewEntity } from './review.entity';
 
 @Entity('tours')
 @Index('IDX_tours_category_id', ['categoryId'])
@@ -46,4 +47,7 @@ export class TourEntity {
 
   @OneToMany(() => TourTimeEntity, (tourTime) => tourTime.tour)
   tourTimes: TourTimeEntity[];
+
+  @OneToMany(() => ReviewEntity, (review) => review.tour)
+  reviews: ReviewEntity[];
 }

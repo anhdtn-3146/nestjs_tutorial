@@ -10,6 +10,16 @@ token. It returns paginated tours that have at least one future `open`
 departure. Only future open departures are included in each tour. `limit`
 defaults to 20; `offset` defaults to 0.
 
+The public list supports `category_id`, partial case-insensitive `name`,
+`min_price` and `max_price` filters. Results can be sorted with `sort_by`
+(`price`, `start_date`, `name` or `rating`) and `sort_order` (`asc` or `desc`).
+When sorting by `rating`, the default order is `desc`, and tours without reviews
+have an average rating of zero:
+
+```text
+GET /api/tours?category_id=1&name=da+nang&min_price=1000000&max_price=3000000&sort_by=price&sort_order=asc
+```
+
 `GET /api/tours/:id` is also public. It returns the selected Tour with its
 images and all future `open` departures, ordered by start date. The client uses
 the chosen `tourTimes[].id` as the departure identifier for the next booking
@@ -55,6 +65,23 @@ exponential backoff. MailHog's local inbox is available at
 Email layout is defined in `src/modules/mail/templates`, while translated
 content is stored in `src/i18n/{lang}/mail.json`. `MAIL_LANGUAGE` selects the
 default recipient language and defaults to `en`.
+
+## Review a tour
+
+`POST /api/tours/:tourId/reviews` requires a valid access token. The user ID is
+taken from the access token. The user must have an `approved` booking for the
+tour whose departure ended before the current day. Future and ongoing tours
+cannot be reviewed. The body contains an integer `rating` from 1 to 5 and an
+optional text `comment`:
+
+```json
+{
+  "rating": 5,
+  "comment": "Great tour"
+}
+```
+
+A successful review returns `{ "success": true }`.
 
 ## Create a tour
 
