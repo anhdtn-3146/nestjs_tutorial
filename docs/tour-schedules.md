@@ -25,6 +25,12 @@ images and all future `open` departures, ordered by start date. The client uses
 the chosen `tourTimes[].id` as the departure identifier for the next booking
 step. A Tour without any available departure is returned as not found.
 
+Every day at 15:00 in the configured business timezone, a repeatable Bull job
+changes non-deleted departures whose `start_date` has arrived from `open` to
+`closed`. The schedule can be overridden with `CLOSE_STARTED_TOUR_TIMES_CRON`.
+The booking endpoint also checks the departure date directly, so bookings stay
+protected if the background job is delayed.
+
 ## Book a departure
 
 `POST /api/bookings` requires a valid access token. The body contains

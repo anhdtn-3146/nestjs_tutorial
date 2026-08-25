@@ -3,6 +3,7 @@ import {
   ConflictException,
   HttpException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -42,9 +43,13 @@ interface StoredTourImage {
 
 @Injectable()
 export class ToursService {
+  private readonly logger = new Logger(ToursService.name);
+
   constructor(
     @InjectRepository(TourEntity)
     private readonly tourRepository: Repository<TourEntity>,
+    @InjectRepository(TourTimeEntity)
+    private readonly tourTimeRepository: Repository<TourTimeEntity>,
     @InjectRepository(BookingEntity)
     private readonly bookingRepository: Repository<BookingEntity>,
     @InjectRepository(CategoryEntity)
@@ -52,6 +57,25 @@ export class ToursService {
     private readonly dataSource: DataSource,
     private readonly i18n: I18nService,
   ) {}
+
+  async closeStartedTourTimes(): Promise<number> {
+    const businessDate = today();
+    const result = await this.tourTimeRepository
+      .createQueryBuilder()
+      .update(TourTimeEntity)
+      .set({ status: TourTimeStatus.CLOSED })
+      .where('status = :openStatus', { openStatus: TourTimeStatus.OPEN })
+      .andWhere('start_date <= :businessDate', { businessDate })
+      .andWhere('deleted_at IS NULL')
+      .execute();
+    const affected = result.affected ?? 0;
+
+    this.logger.log(
+      `Closed ${affected} started tour time(s) for ${businessDate}`,
+    );
+
+    return affected;
+  }
 
   private async findTourByIdOrThrow(
     id: number,
