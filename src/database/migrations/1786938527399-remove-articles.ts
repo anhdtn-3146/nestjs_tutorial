@@ -4,11 +4,11 @@ export class RemoveArticles1786938527399 implements MigrationInterface {
   name = 'RemoveArticles1786938527399';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE "comments"`);
-    await queryRunner.query(`DROP TABLE "articles_favorited_by_users"`);
-    await queryRunner.query(`DROP TABLE "articles_tag_list_tags"`);
-    await queryRunner.query(`DROP TABLE "articles"`);
-    await queryRunner.query(`DROP TABLE "tags"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "comments"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "articles_favorited_by_users"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "articles_tag_list_tags"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "articles"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "tags"`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

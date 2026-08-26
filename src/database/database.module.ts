@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -13,9 +14,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
-        entities: [__dirname + '/entities/*.entity.{ts,js}'],
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        synchronize: false, // Use `false` in production and use migrations instead
+        entities: [join(__dirname, 'entities', '*.entity.{ts,js}')],
+        migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+        synchronize: false,
         autoLoadEntities: true,
       }),
       inject: [ConfigService],

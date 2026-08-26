@@ -1,5 +1,6 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { ClassSerializerInterceptor, HttpStatus } from '@nestjs/common';
@@ -11,9 +12,12 @@ import {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const uploadsPath = join(process.cwd(), 'uploads');
+
+  mkdirSync(uploadsPath, { recursive: true });
 
   app.setGlobalPrefix('api');
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+  app.useStaticAssets(uploadsPath, {
     prefix: '/uploads/',
   });
 
