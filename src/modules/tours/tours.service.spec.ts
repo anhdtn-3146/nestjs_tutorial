@@ -6,6 +6,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { I18nService } from 'nestjs-i18n';
+import { TIME_ZONE } from 'src/common/constants';
 import { BookingEntity } from 'src/database/entities/booking.entity';
 import { CategoryEntity } from 'src/database/entities/category.entity';
 import {
@@ -20,10 +21,18 @@ import { ToursService } from './tours.service';
 describe('ToursService', () => {
   let service: ToursService;
   let tours: jest.Mocked<Partial<Repository<TourEntity>>>;
+  let tourTimes: jest.Mocked<Partial<Repository<TourTimeEntity>>>;
   let bookings: jest.Mocked<Partial<Repository<BookingEntity>>>;
   let categories: jest.Mocked<Partial<Repository<CategoryEntity>>>;
   let transactionTours: jest.Mocked<Partial<Repository<TourEntity>>>;
   let transactionTimes: jest.Mocked<Partial<Repository<TourTimeEntity>>>;
+  let tourTimeQueryBuilder: {
+    update: jest.Mock;
+    set: jest.Mock;
+    where: jest.Mock;
+    andWhere: jest.Mock;
+    execute: jest.Mock;
+  };
 
   beforeEach(async () => {
     transactionTours = {
@@ -42,6 +51,16 @@ describe('ToursService', () => {
       findOne: jest.fn(),
       delete: jest.fn(),
       createQueryBuilder: jest.fn(),
+    };
+    tourTimeQueryBuilder = {
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      execute: jest.fn(),
+    };
+    tourTimes = {
+      createQueryBuilder: jest.fn().mockReturnValue(tourTimeQueryBuilder),
     };
     bookings = { count: jest.fn().mockResolvedValue(0) };
     categories = { findOne: jest.fn() };
@@ -62,6 +81,7 @@ describe('ToursService', () => {
       providers: [
         ToursService,
         { provide: getRepositoryToken(TourEntity), useValue: tours },
+        { provide: getRepositoryToken(TourTimeEntity), useValue: tourTimes },
         { provide: getRepositoryToken(BookingEntity), useValue: bookings },
         { provide: getRepositoryToken(CategoryEntity), useValue: categories },
         { provide: DataSource, useValue: dataSource },
@@ -72,6 +92,40 @@ describe('ToursService', () => {
       ],
     }).compile();
     service = module.get(ToursService);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it(`closes only open, non-deleted tour times using ${TIME_ZONE}`, async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-19T18:00:00.000Z'));
+    tourTimeQueryBuilder.execute.mockResolvedValue({ affected: 2 });
+
+    await expect(service.closeStartedTourTimes()).resolves.toBe(2);
+
+    expect(tourTimeQueryBuilder.set).toHaveBeenCalledWith({
+      status: TourTimeStatus.CLOSED,
+    });
+    expect(tourTimeQueryBuilder.where).toHaveBeenCalledWith(
+      'status = :openStatus',
+      { openStatus: TourTimeStatus.OPEN },
+    );
+    expect(tourTimeQueryBuilder.andWhere).toHaveBeenNthCalledWith(
+      1,
+      'start_date <= :businessDate',
+      { businessDate: '2026-08-20' },
+    );
+    expect(tourTimeQueryBuilder.andWhere).toHaveBeenNthCalledWith(
+      2,
+      'deleted_at IS NULL',
+    );
+  });
+
+  it('returns zero when no tour time needs to be closed', async () => {
+    tourTimeQueryBuilder.execute.mockResolvedValue({ affected: undefined });
+
+    await expect(service.closeStartedTourTimes()).resolves.toBe(0);
   });
 
   it('creates one tour and multiple times atomically', async () => {
