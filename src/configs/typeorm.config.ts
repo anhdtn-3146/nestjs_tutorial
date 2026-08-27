@@ -1,7 +1,10 @@
+import { join } from 'node:path';
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 
 config();
+
+const fileExtension = __filename.endsWith('.ts') ? 'ts' : 'js';
 
 const typeormConfig = new DataSource({
   type: 'postgres',
@@ -10,8 +13,8 @@ const typeormConfig = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: ['src/database/entities/*.entity.{ts,js}'],
-  migrations: ['src/database/migrations/*.{ts,js}'],
+  entities: [join(__dirname, '..', 'database', 'entities', `*.entity.${fileExtension}`)],
+  migrations: [join(__dirname, '..', 'database', 'migrations', `*.${fileExtension}`)],
   synchronize: false,
 });
 

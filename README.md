@@ -31,6 +31,22 @@
 $ npm install
 ```
 
+## Environment
+
+Use `.env.example` as the single source mẫu:
+
+```bash
+cp .env.example .env
+```
+
+Các giá trị mặc định trong `.env.example` đang dành cho Docker Compose:
+
+- `DB_HOST=postgres`
+- `REDIS_HOST=redis`
+- `MAIL_HOST=mailhog`
+
+Nếu chạy app trực tiếp ngoài Docker, đổi các host này về `localhost`.
+
 ## Compile and run the project
 
 ```bash
@@ -61,6 +77,73 @@ $ npm run test:cov
 
 Login, refresh-token rotation, logout, PostgreSQL session storage và Redis
 blacklist được mô tả tại [docs/authentication.md](docs/authentication.md).
+
+## Docker deployment
+
+Stack Docker hiện tại gồm:
+
+- `app`: NestJS production build
+- `migrate`: chạy TypeORM migration trước khi app start
+- `postgres`: PostgreSQL 16
+- `redis`: Redis 7
+- `mailhog`: SMTP test + web UI
+
+### Step 1. Chuẩn bị env
+
+```bash
+cp .env.example .env
+```
+
+Thay ít nhất các giá trị sau trước khi chạy shared environment:
+
+- `JWT_ACCESS_SECRET`
+- `DB_PASSWORD`
+- `MAIL_FROM`
+
+### Step 2. Build và start toàn bộ stack
+
+```bash
+docker compose up --build -d
+```
+
+### Step 3. Kiểm tra container
+
+```bash
+docker compose ps
+docker compose logs migrate
+docker compose logs app
+```
+
+Kỳ vọng:
+
+- `migrate` kết thúc với trạng thái thành công
+- `app` listen ở cổng `3000` hoặc giá trị `PORT` trong `.env`
+- `mailhog` web UI mở ở `http://localhost:8025`
+
+### Step 4. Test nhanh API
+
+```bash
+curl http://localhost:3000/api
+```
+
+### Step 5. Stop stack khi không dùng
+
+```bash
+docker compose down
+```
+
+Nếu muốn xoá luôn volume database, redis và uploads:
+
+```bash
+docker compose down -v
+```
+
+### Notes
+
+- Uploads được mount vào volume `uploads_data`, nên restart container không làm mất file.
+- `migrate` là one-shot service. Mỗi lần `docker compose up` nó sẽ chạy migration trước khi `app` start.
+- Hiện tại scheduler và worker Bull đang chạy chung trong `app`, nên container này vừa serve API vừa xử lý background jobs.
+- Nếu deploy production thật, nên thay `mailhog` bằng SMTP service thật và không public port `8025`.
 
 ## Deployment
 
