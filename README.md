@@ -33,19 +33,19 @@ $ npm install
 
 ## Environment
 
-Use `.env.example` as the single source mẫu:
+Use `.env.example` as the single source of truth:
 
 ```bash
 cp .env.example .env
 ```
 
-Các giá trị mặc định trong `.env.example` đang dành cho Docker Compose:
+The default values in `.env.example` are intended for Docker Compose:
 
 - `DB_HOST=postgres`
 - `REDIS_HOST=redis`
 - `MAIL_HOST=mailhog`
 
-Nếu chạy app trực tiếp ngoài Docker, đổi các host này về `localhost`.
+If you run the app directly outside Docker, change these hosts to `localhost`.
 
 ## Compile and run the project
 
@@ -75,38 +75,38 @@ $ npm run test:cov
 
 ## Authentication
 
-Login, refresh-token rotation, logout, PostgreSQL session storage và Redis
-blacklist được mô tả tại [docs/authentication.md](docs/authentication.md).
+Login, refresh-token rotation, logout, PostgreSQL session storage, and Redis
+blacklist are described in [docs/authentication.md](docs/authentication.md).
 
 ## Docker deployment
 
-Stack Docker hiện tại gồm:
+The current Docker stack includes:
 
 - `app`: NestJS production build
-- `migrate`: chạy TypeORM migration trước khi app start
+- `migrate`: runs TypeORM migrations before the app starts
 - `postgres`: PostgreSQL 16
 - `redis`: Redis 7
 - `mailhog`: SMTP test + web UI
 
-### Step 1. Chuẩn bị env
+### Step 1. Prepare env
 
 ```bash
 cp .env.example .env
 ```
 
-Thay ít nhất các giá trị sau trước khi chạy shared environment:
+Change at least the following values before running a shared environment:
 
 - `JWT_ACCESS_SECRET`
 - `DB_PASSWORD`
 - `MAIL_FROM`
 
-### Step 2. Build và start toàn bộ stack
+### Step 2. Build and start the full stack
 
 ```bash
 docker compose up --build -d
 ```
 
-### Step 3. Kiểm tra container
+### Step 3. Check containers
 
 ```bash
 docker compose ps
@@ -114,25 +114,25 @@ docker compose logs migrate
 docker compose logs app
 ```
 
-Kỳ vọng:
+Expected:
 
-- `migrate` kết thúc với trạng thái thành công
-- `app` listen ở cổng `3000` hoặc giá trị `PORT` trong `.env`
-- `mailhog` web UI mở ở `http://localhost:8025`
+- `migrate` exits successfully
+- `app` listens on port `3000` or the `PORT` value from `.env`
+- `mailhog` web UI is available at `http://localhost:8025`
 
-### Step 4. Test nhanh API
+### Step 4. Quick API test
 
 ```bash
 curl http://localhost:3000/api
 ```
 
-### Step 5. Stop stack khi không dùng
+### Step 5. Stop the stack when not in use
 
 ```bash
 docker compose down
 ```
 
-Nếu muốn xoá luôn volume database, redis và uploads:
+If you also want to remove the database, Redis, and uploads volumes:
 
 ```bash
 docker compose down -v
@@ -140,23 +140,24 @@ docker compose down -v
 
 ### Notes
 
-- Uploads được mount vào volume `uploads_data`, nên restart container không làm mất file.
-- `migrate` là one-shot service. Mỗi lần `docker compose up` nó sẽ chạy migration trước khi `app` start.
-- Hiện tại scheduler và worker Bull đang chạy chung trong `app`, nên container này vừa serve API vừa xử lý background jobs.
-- Nếu deploy production thật, nên thay `mailhog` bằng SMTP service thật và không public port `8025`.
+- Uploads are mounted to the `uploads_data` volume, so restarting containers does not remove uploaded files.
+- `migrate` is a one-shot service. Each time `docker compose up` runs, it applies migrations before `app` starts.
+- The scheduler and Bull worker currently run inside `app`, so this container serves the API and processes background jobs.
+- For a real production deployment, replace `mailhog` with a real SMTP service and do not expose port `8025`.
 
-## Deployment
+## CI
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+The GitHub Actions workflow lives at `.github/workflows/ci.yml` and uses Node.js 22 with `package-lock.json`; it does not upgrade or downgrade dependencies.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+CI runs when a pull request to `master` is opened or updated, when `master` receives a push, or when the workflow is triggered manually:
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+1. Install dependencies with `npm ci`.
+2. Run lint with `npm run lint`.
+3. Check TypeScript with `npm run typecheck`.
+4. Run unit tests with `npm test -- --runInBand`.
+5. Build NestJS with `npm run build`.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The workflow currently runs CI only. It does not include CD, does not build or push Docker images, and does not access any production environment.
 
 ## Resources
 
